@@ -1,0 +1,5 @@
+# Ignore docs and analysis directories
+[Dd]ocs/
+[Aa]nalysis/
+*Docs/
+*Analysis/

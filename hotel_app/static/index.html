@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A26 Hotel PMS — Quản Lý Vận Hành</title>
+  
+  <!-- Google Fonts: Be Vietnam Pro & Inter (Chuẩn Typography Cao Cấp) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Custom Design System CSS -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Top Announcement Bar (Vinamilk Style) -->
+  <div class="top-announcement">
+    <div>A26 HOTEL — HỆ THỐNG QUẢN TRỊ VẬN HÀNH (AZURE DATA API BUILDER + AZURE SQL)</div>
+    <div class="top-links">
+      <span id="live-time">--:--:--</span>
+      <a href="http://localhost:5000/api/RoomStatusMatrix" target="_blank" class="btn-swagger-pill">DAB REST API (Port 5000)</a>
+    </div>
+  </div>
+
+  <!-- Header Main -->
+  <header class="header-main">
+    <div class="brand-group">
+      <div class="brand-logo-badge" style="font-size: 1rem; width: 48px;">A26</div>
+      <div>
+        <div class="brand-title">A26 HOTEL</div>
+        <div class="brand-subtitle">Hệ Thống Quản Lý Lưu Trú & Sổ Cái Thu Ngân Chuẩn 21 Cột</div>
+      </div>
+    </div>
+    <div class="header-info-badge">
+      <div class="dot-pulse"></div>
+      <span>HỆ THỐNG TRỰC TUYẾN (AZURE DAB ACTIVE)</span>
+    </div>
+  </header>
+
+  <!-- Container -->
+  <div class="container">
+
+    <!-- KPI Stats Cards (Vinamilk Style) -->
+    <div class="stats-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Doanh Thu Gộp (Gross)</div>
+        <div class="kpi-value" id="kpi-gross">0 đ</div>
+        <div class="kpi-sub">Tiền phòng + dịch vụ toàn tháng</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Doanh Thu Thuần (Net)</div>
+        <div class="kpi-value" id="kpi-net">0 đ</div>
+        <div class="kpi-sub">Đã khấu trừ phí hoa hồng OTA</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Tỷ Lệ Lấp Đầy Phòng</div>
+        <div class="kpi-value" id="kpi-occ">0%</div>
+        <div class="kpi-sub" id="kpi-occ-ratio">0/20 phòng đang lưu trú</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Tổng Lượt Lưu Trú</div>
+        <div class="kpi-value" id="kpi-count">0</div>
+        <div class="kpi-sub">Số lượt check-in ghi nhận</div>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs (Vinamilk Minimal Style) -->
+    <nav class="tabs-nav-bar">
+      <button class="tab-item active" onclick="switchNavTab('tab-checkin')">
+        <span>Đặt phòng & Check-in</span>
+      </button>
+      <button class="tab-item" onclick="switchNavTab('tab-bookings')">
+        <span>Sổ cái đặt phòng</span>
+      </button>
+      <button class="tab-item" onclick="switchNavTab('tab-rooms')">
+        <span>Phòng</span>
+      </button>
+      <button class="tab-item" onclick="switchNavTab('tab-customers')">
+        <span>Khách lưu trú</span>
+      </button>
+      <button class="tab-item" onclick="switchNavTab('tab-channels')">
+        <span>Kênh OTA</span>
+      </button>
+    </nav>
+
+    <!-- ─── TAB 1: FORM CHECK-IN (21 CỘT PMS) ──────────────── -->
+    <section id="tab-checkin" class="tab-pane active">
+      <div class="content-card">
+        <div class="card-top">
+          <div class="card-heading">
+            <span>Phiếu Đặt Phòng & Check-in (Chuẩn 21 Thuộc Tính PMS)</span>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" onclick="resetCheckinForm()">
+            Làm mới form
+          </button>
+        </div>
+
+        <form id="form-checkin" onsubmit="submitNewBooking(event)">
+          <div class="form-layout">
+
+            <!-- 1. Phòng & Kênh & Thời Gian Lưu Trú -->
+            <div class="section-header">1. Thông Tin Phòng, Kênh & Thời Gian Lưu Trú</div>
+
+            <div class="form-group col-4">
+              <label>Chọn Phòng Lưu Trú <span class="req">*</span></label>
+              <select id="f-room" required onchange="handleRoomSelect()">
+                <option value="">-- Chọn phòng --</option>
+              </select>
+            </div>
+
+            <div class="form-group col-4">
+              <label>Kênh Đặt Phòng <span class="req">*</span></label>
+              <select id="f-chan" required>
+                <option value="">-- Chọn kênh phân phối --</option>
+              </select>
+            </div>
+
+            <div class="form-group col-4">
+              <label>Số Đêm Lưu Trú <span class="req">*</span></label>
+              <input type="number" id="f-nights" value="1" min="0" required oninput="handleNightsInputChange()" style="background:#F8FAFC; font-weight:700; color:var(--v-blue);">
+            </div>
+
+            <div class="form-group col-6">
+              <label>Ngày & Giờ Check-in (Vào) <span class="req">*</span></label>
+              <input type="datetime-local" id="f-checkin-time" required onchange="handleCheckinTimeChange()">
+            </div>
+
+            <div class="form-group col-6">
+              <label>Ngày & Giờ Check-out (Ra) <span class="req">*</span></label>
+              <input type="datetime-local" id="f-checkout-time" required onchange="handleCheckoutTimeChange()">
+            </div>
+
+            <!-- 2. Khách Hàng -->
+            <div class="section-header">2. Thông Tin Khách Hàng</div>
+
+            <div class="form-group col-6">
+              <label>Họ Và Tên Khách Hàng <span class="req">*</span></label>
+              <input type="text" id="f-name" required placeholder="Nguyễn Văn A">
+            </div>
+
+            <div class="form-group col-6">
+              <label>Số Điện Thoại <span class="req">*</span></label>
+              <input type="tel" id="f-phone" required placeholder="0912345678">
+            </div>
+
+            <div class="form-group col-6">
+              <label>CCCD / CMND / Passport</label>
+              <input type="text" id="f-idnum" placeholder="00120000xxxx">
+            </div>
+
+            <div class="form-group col-6">
+              <label>Quốc Tịch</label>
+              <input type="text" id="f-nation" value="Việt Nam">
+            </div>
+
+            <!-- 3. Doanh Thu & Sổ Cái Thu Ngân -->
+            <div class="section-header">3. Doanh Thu & Sổ Cái Thanh Toán (10 Trường Tài Chính)</div>
+
+            <div class="form-group col-4">
+              <label>Tiền Phòng Tổng Cộng (VND) <span class="req">*</span></label>
+              <input type="number" id="f-roomrev" required min="0" oninput="calculateRealtimeFinances()" style="font-weight:700; color:var(--v-blue);">
+            </div>
+
+            <div class="form-group col-4">
+              <label>Tiền Dịch Vụ Phát Sinh</label>
+              <input type="number" id="f-servrev" value="0" min="0" oninput="calculateRealtimeFinances()">
+            </div>
+
+            <div class="form-group col-4">
+              <label>Nợ Cũ (Nếu có)</label>
+              <input type="number" id="f-debtold" value="0" min="0" oninput="calculateRealtimeFinances()">
+            </div>
+
+            <!-- Phương thức thanh toán -->
+            <div class="form-group col-3">
+              <label>Tiền Mặt</label>
+              <input type="number" id="f-cash" value="0" min="0" oninput="calculateRealtimeFinances()">
+            </div>
+
+            <div class="form-group col-3">
+              <label>Thẻ Tín Dụng (POS)</label>
+              <input type="number" id="f-card" value="0" min="0" oninput="calculateRealtimeFinances()">
+            </div>
+
+            <div class="form-group col-3">
+              <label>Chuyển Khoản / QR</label>
+              <input type="number" id="f-trans" value="0" min="0" oninput="calculateRealtimeFinances()">
+            </div>
+
+            <div class="form-group col-3">
+              <label>Ghi Công Nợ (Treo)</label>
+              <input type="number" id="f-debttree" value="0" min="0" oninput="calculateRealtimeFinances()">
+            </div>
+
+            <!-- Bảng tổng hợp dòng tiền Realtime Vinamilk Style -->
+            <div class="calc-highlight-box">
+              <div>
+                <div class="calc-metric-lbl">Tổng Phải Thu (Gross + Nợ)</div>
+                <div class="calc-metric-val" id="c-total">0 đ</div>
+              </div>
+              <div>
+                <div class="calc-metric-lbl">Đã Thanh Toán</div>
+                <div class="calc-metric-val" style="color: var(--success);" id="c-paid">0 đ</div>
+              </div>
+              <div>
+                <div class="calc-metric-lbl">Còn Thiếu (Balance Due)</div>
+                <div class="calc-metric-val" id="c-due">0 đ</div>
+              </div>
+              <div>
+                <div class="calc-metric-lbl">Giá Trung Bình / Đêm (ADR)</div>
+                <div class="calc-metric-val" id="c-adr">0 đ</div>
+              </div>
+            </div>
+
+            <!-- 4. Vận Hành & Ghi Chú -->
+            <div class="section-header">4. Vận Hành & Ghi Chú</div>
+
+            <div class="form-group col-6">
+              <label>Mã Đặt Phòng (Tùy chọn)</label>
+              <input type="text" id="f-bid" placeholder="Để trống hệ thống tự sinh mã">
+            </div>
+
+            <div class="form-group col-6">
+              <label>Ghi Chú Đơn</label>
+              <input type="text" id="f-notes" placeholder="Yêu cầu tầng cao, xuất VAT, thêm chăn ga...">
+            </div>
+
+            <div class="col-12" style="margin-top: 0.5rem;">
+              <button type="submit" class="btn btn-vinamilk" style="width: 100%; padding: 14px; font-size: 1rem;">
+                Xác Nhận Đặt Phòng & Check-in
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ─── TAB 2: SỔ CÁI BOOKINGS (DANH SÁCH) ────────────── -->
+    <section id="tab-bookings" class="tab-pane">
+      <div class="content-card">
+        <div class="card-top">
+          <div class="card-heading">
+            <span>Sổ Cái Đặt Phòng & Thu Ngân</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="search-q" placeholder="Tìm tên khách / SĐT / Mã BK / Phòng..." onkeyup="filterBookingsList()" style="width: 260px;">
+            <select id="filter-st" onchange="filterBookingsList()" style="width: 150px;">
+              <option value="all">Tất cả trạng thái</option>
+              <option value="CHECKIN">Đang ở (CHECKIN)</option>
+              <option value="CHECKOUT">Đã trả (CHECKOUT)</option>
+              <option value="CANCELLED">Đã hủy</option>
+            </select>
+            <button class="btn btn-vinamilk" onclick="filterBookingsList()">Tìm kiếm</button>
+            <button class="btn btn-outline" onclick="resetBookingsFilter()">Làm mới</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Mã Đặt Phòng</th>
+                <th>Phòng</th>
+                <th>Khách Hàng</th>
+                <th>SĐT</th>
+                <th>Ngày Đến</th>
+                <th>Ngày Đi</th>
+                <th>Thời Lượng</th>
+                <th>Tiền Phòng</th>
+                <th>Dịch Vụ</th>
+                <th>Tổng Thu</th>
+                <th>Đã Trả</th>
+                <th>Còn Thiếu</th>
+                <th>Trạng Thái</th>
+                <th>Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-bookings">
+              <tr><td colspan="14" style="text-align: center; color: var(--text-muted);">Đang tải dữ liệu...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── TAB 3: DANH SÁCH 20 PHÒNG ──────────────────────── -->
+    <section id="tab-rooms" class="tab-pane">
+      <div class="content-card">
+        <div class="card-top">
+          <div class="card-heading">
+            <span>Danh Sách 20 Phòng</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="search-rooms" placeholder="Tìm số phòng / hạng phòng / tầng..." onkeyup="filterRoomsList()" style="width: 250px;">
+            <select id="filter-room-st" onchange="filterRoomsList()" style="width: 150px;">
+              <option value="all">Tất cả trạng thái</option>
+              <option value="available">Trống (Sẵn sàng)</option>
+              <option value="occupied">Đang ở</option>
+              <option value="cleaning">Đang dọn</option>
+            </select>
+            <button class="btn btn-vinamilk" onclick="filterRoomsList()">Tìm kiếm</button>
+            <button class="btn btn-outline" onclick="resetRoomsFilter()">Làm mới</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Số Phòng</th>
+                <th>Hạng Phòng</th>
+                <th>Tầng</th>
+                <th>Giá Niêm Yết / Đêm</th>
+                <th>Trạng Thái</th>
+                <th>Thao Tác Nhanh</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-rooms">
+              <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Đang tải dữ liệu...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── TAB 4: KHÁCH HÀNG ──────────────────────────────── -->
+    <section id="tab-customers" class="tab-pane">
+      <div class="content-card">
+        <div class="card-top">
+          <div class="card-heading">
+            <span>Danh Bạ Khách Hàng Lưu Trú</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="search-customers" placeholder="Tìm tên khách / SĐT / CCCD / Quốc tịch..." onkeyup="filterCustomersList()" style="width: 320px;">
+            <button class="btn btn-vinamilk" onclick="filterCustomersList()">Tìm kiếm</button>
+            <button class="btn btn-outline" onclick="resetCustomersFilter()">Làm mới</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Họ Và Tên</th>
+                <th>Số Điện Thoại</th>
+                <th>CCCD / Passport</th>
+                <th>Quốc Tịch</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-customers">
+              <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Đang tải dữ liệu...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── TAB 5: KÊNH PHÂN PHỐI (OTA) ────────────────────── -->
+    <section id="tab-channels" class="tab-pane">
+      <div class="content-card">
+        <div class="card-top">
+          <div class="card-heading">
+            <span>Danh Mục Kênh Phân Phối (OTA & Trực Tiếp)</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="search-channels" placeholder="Tìm tên kênh / mã..." onkeyup="filterChannelsList()" style="width: 230px;">
+            <select id="filter-chan-cat" onchange="filterChannelsList()" style="width: 150px;">
+              <option value="all">Tất cả phân loại</option>
+              <option value="Direct">Trực tiếp (Direct)</option>
+              <option value="OTA">Sàn OTA</option>
+            </select>
+            <button class="btn btn-vinamilk" onclick="filterChannelsList()">Tìm kiếm</button>
+            <button class="btn btn-outline" onclick="resetChannelsFilter()">Làm mới</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tên Kênh Phân Phối</th>
+                <th>Phân Loại</th>
+                <th>Tỷ Lệ Hoa Hồng (%)</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-channels">
+              <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Đang tải dữ liệu...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Modal Check-out -->
+  <div id="checkout-modal" class="modal-backdrop">
+    <div class="modal-card">
+      <h3 style="font-family: 'Be Vietnam Pro', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--v-blue); margin-bottom: 0.8rem;">
+        Xác Nhận Thủ Tục Check-out & Trả Phòng
+      </h3>
+      <p style="font-size: 0.9rem; margin-bottom: 0.4rem;">
+        Mã Đơn: <strong id="m-bid" style="color: var(--v-blue);">--</strong> (<span id="m-cust">--</span> - Phòng <span id="m-room">--</span>)
+      </p>
+      <p id="m-duration" style="font-size: 0.85rem; color: var(--text-muted); background: var(--v-blue-light); padding: 6px 12px; border-radius: 6px; margin-bottom: 1rem;">
+        Thời gian lưu trú: --
+      </p>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem;">
+        <button class="btn btn-outline" onclick="closeCheckoutModal()">Đóng</button>
+        <button class="btn btn-vinamilk" onclick="confirmCheckoutAction()">Xác Nhận Trả Phòng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-msg"></div>
+
+  <!-- App Script -->
+  <script src="js/app.js"></script>
+</body>
+</html>

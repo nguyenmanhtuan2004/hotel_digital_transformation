@@ -1,0 +1,614 @@
+:root {
+  /* Bảng Màu Vinamilk Chuẩn Doanh Nghiệp */
+  --v-blue: #001489;           /* Primary: Xanh Vinamilk đậm */
+  --v-blue-hover: #000f6b;     /* Primary Hover */
+  --v-blue-light: #eef3ff;     /* Xanh nhạt */
+  --v-blue-pastel: #dbe4ff;    /* Pastel viền nhạt */
+  --v-accent: #0052cc;         /* Accent: Xanh sáng hơn, dùng tiết chế */
+  
+  --bg-page: #f8fafc;          /* Background: Trắng sáng / Slate trung tính */
+  --card-bg: #ffffff;          /* Card: Trắng tinh khiết */
+  --border-color: #e8e8e8;     /* Border: Xám nhạt tinh tế */
+  --border-active: #001489;
+  
+  --text-main: #001489;        /* Text chính: Xanh Vinamilk đậm */
+  --text-body: #1e293b;        /* Text nội dung: Đen than dễ đọc */
+  --text-muted: #5a6e7f;       /* Text phụ: Xám xanh */
+  
+  --success: #059669;
+  --success-light: #ecfdf5;
+  --danger: #dc2626;
+  --danger-light: #fef2f2;
+  --warning: #d97706;
+  --warning-light: #fffbeb;
+  
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-input: 8px;
+  --radius-btn: 10px;
+  --radius-card: 14px;
+  --shadow-card: none;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Be Vietnam Pro', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text-body);
+  line-height: 1.55;
+  font-size: 0.9rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── 1. Top Announcement Bar ────────────────────────── */
+.top-announcement {
+  background: var(--v-blue);
+  color: #ffffff;
+  padding: 7px 2rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  letter-spacing: 0.02em;
+}
+
+.top-links {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.top-links span {
+  opacity: 0.9;
+}
+
+.btn-swagger-pill {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.74rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn-swagger-pill:hover {
+  background: #ffffff;
+  color: var(--v-blue);
+}
+
+/* ─── 2. Main Brand Header ──────────────────────────── */
+.header-main {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.85rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: none;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo-badge {
+  background: var(--v-blue);
+  color: #ffffff;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  box-shadow: none;
+}
+
+.brand-title {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--v-blue);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.brand-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 450;
+  margin-top: 2px;
+}
+
+.header-info-badge {
+  background: var(--v-blue-light);
+  border: 1px solid var(--v-blue-pastel);
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--v-blue);
+  font-weight: 600;
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.dot-pulse {
+  width: 7px;
+  height: 7px;
+  background: var(--v-blue);
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(0, 21, 182, 0.7);
+  animation: pulseBlue 1.8s infinite;
+}
+
+@keyframes pulseBlue {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 21, 182, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(0, 21, 182, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 21, 182, 0); }
+}
+
+/* ─── 3. Main Container ──────────────────────────────── */
+.container {
+  max-width: 1360px;
+  margin: 1.5rem auto;
+  padding: 0 1.5rem;
+  width: 100%;
+  flex: 1;
+}
+
+/* ─── 4. KPI Stats Cards ─────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 1.15rem 1.35rem;
+  border: 1px solid var(--border-color);
+  box-shadow: none;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--v-blue);
+  border-radius: 4px 0 0 4px;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  border-color: #cbd5e1;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kpi-value {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--v-blue);
+  margin: 4px 0 2px 0;
+  letter-spacing: -0.02em;
+}
+
+.kpi-sub {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 450;
+}
+
+/* ─── 5. Navigation Tabs ─────────────────────────────── */
+.tabs-nav-bar {
+  display: flex;
+  gap: 28px;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--border-color);
+  padding: 0 4px;
+  overflow-x: auto;
+}
+
+.tab-item {
+  background: transparent;
+  border: none;
+  padding: 8px 4px 12px 4px;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 0.92rem;
+  font-weight: 550;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.2s;
+  white-space: nowrap;
+  position: relative;
+  margin-bottom: -2px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tab-item:hover {
+  color: var(--v-blue);
+  background: transparent;
+}
+
+.tab-item.active {
+  color: var(--v-blue);
+  font-weight: 700;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--v-blue);
+  border-radius: 3px 3px 0 0;
+}
+
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+  animation: tabFadeIn 0.2s ease-out;
+}
+
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── 6. Content Cards & Inputs ──────────────────────── */
+.content-card {
+  background: var(--card-bg);
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  box-shadow: none;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.35rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1.5px solid var(--v-blue-light);
+}
+
+.card-heading {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 650;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: -0.01em;
+}
+
+.form-layout {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.2rem;
+}
+
+.col-12 { grid-column: span 12; }
+.col-6  { grid-column: span 6; }
+.col-4  { grid-column: span 4; }
+.col-3  { grid-column: span 3; }
+.col-2  { grid-column: span 2; }
+
+@media (max-width: 850px) {
+  .col-6, .col-4, .col-3, .col-2 { grid-column: span 12; }
+}
+
+.section-header {
+  grid-column: span 12;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #1e293b;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-top: 0.4rem;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+label {
+  font-size: 0.82rem;
+  font-weight: 550;
+  color: #334155;
+}
+
+label .req {
+  color: var(--danger);
+}
+
+/* Input & Select */
+input, select {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-family: 'Be Vietnam Pro', 'Inter', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 400;
+  color: #0f172a;
+  background-color: #ffffff;
+  outline: none;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+input:focus, select:focus {
+  border-color: var(--v-blue);
+  box-shadow: 0 0 0 3px rgba(0, 20, 137, 0.08);
+}
+
+/* ─── 7. Financial Calculation Box ──────────────────── */
+.calc-highlight-box {
+  grid-column: span 12;
+  background: var(--v-blue-light);
+  border: 1px solid var(--v-blue-pastel);
+  border-radius: 10px;
+  padding: 1.15rem 1.4rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+  margin: 0.4rem 0;
+}
+
+.calc-metric-lbl {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.calc-metric-val {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--v-blue);
+  margin-top: 2px;
+  letter-spacing: -0.01em;
+}
+
+/* ─── 8. Buttons ─────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.btn-vinamilk {
+  background: var(--v-blue);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.btn-vinamilk:hover {
+  background: var(--v-blue-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 20, 137, 0.18);
+}
+
+.btn-outline {
+  background: #ffffff;
+  color: var(--v-blue);
+  border: 1px solid var(--v-blue);
+}
+
+.btn-outline:hover {
+  background: var(--v-blue-light);
+}
+
+.btn-success {
+  background: var(--success);
+  color: #ffffff;
+}
+
+.btn-success:hover {
+  background: #047857;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 0.76rem;
+  border-radius: 6px;
+}
+
+/* ─── 9. Tables ──────────────────────────────────────── */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  background: #ffffff;
+}
+
+th {
+  background: var(--v-blue-light);
+  color: #1e293b;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  font-weight: 600;
+  font-size: 0.82rem;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+tr:hover td {
+  background-color: #fafbfe;
+}
+
+/* ─── 10. Badges & Status Tags ───────────────────────── */
+.status-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+.badge-available { background: var(--success-light); color: var(--success); border: 1px solid #a7f3d0; }
+.badge-occupied { background: var(--danger-light); color: var(--danger); border: 1px solid #fecaca; }
+.badge-cleaning { background: var(--warning-light); color: var(--warning); border: 1px solid #fde68a; }
+.badge-checkin { background: var(--v-blue-light); color: var(--v-blue); border: 1px solid var(--v-blue-pastel); }
+.badge-checkout { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+
+/* ─── 11. Modal Check-out ────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 14, 71, 0.3);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.modal-backdrop.show {
+  display: flex;
+}
+
+.modal-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  max-width: 480px;
+  width: 90%;
+  padding: 1.6rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  animation: modalPop 0.2s ease-out;
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* ─── 12. Floating Toast ─────────────────────────────── */
+#toast-msg {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--v-blue);
+  color: #ffffff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: none;
+  z-index: 2000;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  animation: toastIn 0.3s ease-out;
+}
+
+@keyframes toastIn {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

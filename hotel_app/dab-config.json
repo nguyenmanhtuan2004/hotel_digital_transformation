@@ -1,0 +1,99 @@
+{
+  "$schema": "https://github.com/Azure/data-api-builder/releases/download/v1.1.0/dab.draft.schema.json",
+  "data-source": {
+    "database-type": "mssql",
+    "connection-string": "@env('AZURE_SQL_CONNECTION_STRING')"
+  },
+  "runtime": {
+    "rest": {
+      "enabled": true,
+      "path": "/api"
+    },
+    "graphql": {
+      "enabled": false
+    },
+    "host": {
+      "mode": "development",
+      "cors": {
+        "origins": ["*"],
+        "allow-credentials": false
+      }
+    }
+  },
+  "entities": {
+    "DimRoom": {
+      "source": "dbo.DimRoom",
+      "permissions": [
+        { "role": "anonymous", "actions": ["*"] }
+      ]
+    },
+    "DimChannel": {
+      "source": "dbo.DimChannel",
+      "permissions": [
+        { "role": "anonymous", "actions": ["read"] }
+      ]
+    },
+    "DimCustomer": {
+      "source": "dbo.DimCustomer",
+      "permissions": [
+        { "role": "anonymous", "actions": ["*"] }
+      ]
+    },
+    "FactBooking": {
+      "source": "dbo.FactBooking",
+      "permissions": [
+        { "role": "anonymous", "actions": ["*"] }
+      ]
+    },
+    "RoomStatusMatrix": {
+      "source": {
+        "object": "dbo.v_RoomStatus_Matrix",
+        "type": "view",
+        "key-fields": ["RoomID"]
+      },
+      "permissions": [
+        { "role": "anonymous", "actions": ["read"] }
+      ]
+    },
+    "DailyCashLedger": {
+      "source": {
+        "object": "dbo.v_DailyCashLedger",
+        "type": "view",
+        "key-fields": ["ShiftDate"]
+      },
+      "permissions": [
+        { "role": "anonymous", "actions": ["read"] }
+      ]
+    },
+    "CheckIn": {
+      "source": {
+        "object": "dbo.sp_CheckInHotel",
+        "type": "stored-procedure"
+      },
+      "rest": { "methods": ["post"] },
+      "permissions": [
+        { "role": "anonymous", "actions": ["execute"] }
+      ]
+    },
+    "CheckOut": {
+      "source": {
+        "object": "dbo.sp_CheckOutHotel",
+        "type": "stored-procedure"
+      },
+      "rest": { "methods": ["post"] },
+      "permissions": [
+        { "role": "anonymous", "actions": ["execute"] }
+      ]
+    },
+    "UpdateCleanStatus": {
+      "source": {
+        "object": "dbo.sp_UpdateRoomCleanStatus",
+        "type": "stored-procedure"
+      },
+      "rest": { "methods": ["post"] },
+      "permissions": [
+        { "role": "anonymous", "actions": ["execute"] }
+      ]
+    }
+  }
+}
