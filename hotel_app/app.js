@@ -5,16 +5,19 @@
 
 let roomsData = [], channelsData = [], bookingsData = [], customersData = [], activeCheckoutId = null;
 
-// Tự động nhận diện host API:
-// - Cấu hình ACA URL trực tiếp qua localStorage hoặc window.DAB_API_BASE
-// - Localhost (port 5000 / DAB): /api hoặc http://localhost:5000/api
-// - Mặc định fallback: /api
-// ponytail: default relative /api requires CORS or reverse proxy -> configure ACA URL in localStorage.setItem('DAB_API_BASE', 'https://<aca-fqdn>/api')
+// Cấu hình kết nối API DAB trên Azure Container Apps:
+// ponytail: default to live ACA DAB endpoint with optional localStorage override
+const LIVE_ACA_API = 'https://dab-hotel-pms.kindforest-00f4cba9.southeastasia.azurecontainerapps.io/api';
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const customApiBase = window.DAB_API_BASE || localStorage.getItem('DAB_API_BASE');
 const API_BASE = customApiBase 
   ? customApiBase.replace(/\/$/, '') 
-  : (isLocalhost ? (window.location.port === '5000' ? '/api' : 'http://localhost:5000/api') : '/api');
+  : (isLocalhost && window.location.port === '5000' ? '/api' : LIVE_ACA_API);
+
+// ─── Helpers định dạng dữ liệu ───────────────────────────
+const pad = n => String(n).padStart(2, '0');
+const toLocalISOString = (d = new Date()) => 
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 const formatVND = val => (Math.round(val || 0)).toLocaleString('vi-VN') + ' đ';
 
@@ -22,13 +25,7 @@ const formatDateTime = dtStr => {
   if (!dtStr) return '-';
   const d = new Date(dtStr);
   if (isNaN(d.getTime())) return dtStr;
-  const pad = n => n < 10 ? '0' + n : n;
-  const day = pad(d.getDate());
-  const month = pad(d.getMonth() + 1);
-  const year = String(d.getFullYear()).slice(-2);
-  const hours = pad(d.getHours());
-  const minutes = pad(d.getMinutes());
-  return `${day}/${month}/${year} ${hours}:${minutes}`;
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${String(d.getFullYear()).slice(-2)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
 const formatEstimatedCheckout = (inTimeStr, nights) => {
@@ -36,12 +33,7 @@ const formatEstimatedCheckout = (inTimeStr, nights) => {
   const d = new Date(inTimeStr);
   if (isNaN(d.getTime())) return '-';
   d.setDate(d.getDate() + nights);
-  d.setHours(12, 0, 0, 0);
-  const pad = n => n < 10 ? '0' + n : n;
-  const day = pad(d.getDate());
-  const month = pad(d.getMonth() + 1);
-  const year = String(d.getFullYear()).slice(-2);
-  return `${day}/${month}/${year} 12:00`;
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${String(d.getFullYear()).slice(-2)} 12:00`;
 };
 
 function showToast(text) {
@@ -52,12 +44,13 @@ function showToast(text) {
   setTimeout(() => { toast.style.display = 'none'; }, 3500);
 }
 
-// Helper giải nén data trả về từ DAB (DAB bọc mảng kết quả trong object.value)
+// Helper giải nén data trả về từ DAB (DAB bọc mảng kết quả trong json.value)
+// ponytail: json.value ?? json handles both DAB standard envelope and direct array payloads
 async function apiGet(entityPath) {
   const res = await fetch(`${API_BASE}/${entityPath}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
   const json = await res.json();
-  return Array.isArray(json.value) ? json.value : (Array.isArray(json) ? json : (json.value || json));
+  return json.value ?? json;
 }
 
 // ─── Chuẩn hóa dữ liệu tương thích CSDL Azure SQL ───────
@@ -134,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const apiLink = document.getElementById('api-link');
   if (apiLink) {
     apiLink.href = `${API_BASE}/RoomStatusMatrix`;
-    apiLink.innerText = isLocalhost ? 'DAB REST API (Port 5000)' : 'DAB REST API (Cloud SWA)';
+    apiLink.innerText = isLocalhost ? 'DAB REST API (Local)' : 'DAB REST API (Azure Container Apps)';
   }
 
   // Live Clock
@@ -406,9 +399,7 @@ function handleCheckinTimeChange() {
     syncCheckoutFromNights();
   } else if (inVal) {
     const inDate = new Date(inVal);
-    const outDate = new Date(inDate.getTime() + 2 * 3600 * 1000);
-    const pad = n => n < 10 ? '0' + n : n;
-    document.getElementById('f-checkout-time').value = `${outDate.getFullYear()}-${pad(outDate.getMonth()+1)}-${pad(outDate.getDate())}T${pad(outDate.getHours())}:${pad(outDate.getMinutes())}`;
+    document.getElementById('f-checkout-time').value = toLocalISOString(new Date(inDate.getTime() + 2 * 3600 * 1000));
   }
   handleRoomSelect();
 }
@@ -423,9 +414,7 @@ function handleCheckoutTimeChange() {
   let diffMs = outDate.getTime() - inDate.getTime();
 
   if (diffMs <= 0) {
-    const newOut = new Date(inDate.getTime() + 2 * 3600 * 1000);
-    const pad = n => n < 10 ? '0' + n : n;
-    document.getElementById('f-checkout-time').value = `${newOut.getFullYear()}-${pad(newOut.getMonth()+1)}-${pad(newOut.getDate())}T${pad(newOut.getHours())}:${pad(newOut.getMinutes())}`;
+    document.getElementById('f-checkout-time').value = toLocalISOString(new Date(inDate.getTime() + 2 * 3600 * 1000));
     diffMs = 2 * 3600 * 1000;
   }
 
@@ -449,9 +438,7 @@ function handleNightsInputChange() {
     const inVal = document.getElementById('f-checkin-time').value;
     if (inVal) {
       const inDate = new Date(inVal);
-      const outDate = new Date(inDate.getTime() + 2 * 3600 * 1000);
-      const pad = n => n < 10 ? '0' + n : n;
-      document.getElementById('f-checkout-time').value = `${outDate.getFullYear()}-${pad(outDate.getMonth()+1)}-${pad(outDate.getDate())}T${pad(outDate.getHours())}:${pad(outDate.getMinutes())}`;
+      document.getElementById('f-checkout-time').value = toLocalISOString(new Date(inDate.getTime() + 2 * 3600 * 1000));
     }
   }
   handleRoomSelect();
@@ -461,12 +448,10 @@ function syncCheckoutFromNights() {
   const inVal = document.getElementById('f-checkin-time').value;
   const nights = parseInt(document.getElementById('f-nights').value) || 1;
   if (inVal) {
-    const inDate = new Date(inVal);
-    const outDate = new Date(inDate.getTime());
+    const outDate = new Date(inVal);
     outDate.setDate(outDate.getDate() + nights);
     outDate.setHours(12, 0, 0, 0);
-    const pad = n => n < 10 ? '0' + n : n;
-    document.getElementById('f-checkout-time').value = `${outDate.getFullYear()}-${pad(outDate.getMonth()+1)}-${pad(outDate.getDate())}T${pad(outDate.getHours())}:${pad(outDate.getMinutes())}`;
+    document.getElementById('f-checkout-time').value = toLocalISOString(outDate);
   }
 }
 
@@ -591,11 +576,8 @@ function resetCheckinForm() {
   const nightsEl = document.getElementById('f-nights');
   if (nightsEl) nightsEl.value = 1;
 
-  const now = new Date();
-  const pad = n => n < 10 ? '0' + n : n;
-  const localISO = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
   const inTimeEl = document.getElementById('f-checkin-time');
-  if (inTimeEl) inTimeEl.value = localISO;
+  if (inTimeEl) inTimeEl.value = toLocalISOString();
 
   syncCheckoutFromNights();
   handleRoomSelect();
