@@ -147,6 +147,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initAllData() {
+  const statusText = document.getElementById('header-status-text');
+  const statusDot = document.getElementById('header-status-dot');
   try {
     await Promise.all([
       fetchRooms(),
@@ -155,8 +157,18 @@ async function initAllData() {
     ]);
     await fetchBookings();
     updateDashboardStats();
+
+    if (roomsData.length > 0 || channelsData.length > 0) {
+      if (statusText) statusText.innerText = 'HỆ THỐNG TRỰC TUYẾN (AZURE DAB ACTIVE)';
+      if (statusDot) statusDot.style.background = '#10b981';
+    } else {
+      if (statusText) statusText.innerText = 'CHƯA NHẬN ĐƯỢC DỮ LIỆU TỪ API';
+    }
   } catch (err) {
     console.error("Lỗi đồng bộ dữ liệu ban đầu:", err);
+    if (statusText) statusText.innerText = 'LỖI KẾT NỐI AZURE DAB';
+    if (statusDot) statusDot.style.background = '#ef4444';
+    showToast('⚠️ Không thể tải dữ liệu từ Azure DAB. Vui lòng kiểm tra kết nối.');
   }
 }
 
