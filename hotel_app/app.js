@@ -5,12 +5,14 @@
 
 let roomsData = [], channelsData = [], bookingsData = [], customersData = [], activeCheckoutId = null;
 
-// Tự động nhận diện host API: DAB chạy tại localhost:5000/api hoặc Azure Static Web Apps (/data-api/rest)
-const API_BASE = window.location.pathname.startsWith('/data-api') 
+// Tự động nhận diện host API:
+// - Cloud / Azure Static Web Apps: tự động trỏ vào proxy /data-api/rest
+// - Localhost (chạy qua file/live server): kết nối tới http://localhost:5000/api
+// - Localhost (port 5000 do DAB host trực tiếp): /api
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE = !isLocalhost 
   ? '/data-api/rest' 
-  : ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '5000'
-      ? 'http://localhost:5000/api'
-      : (window.location.port === '5000' ? '/api' : 'http://localhost:5000/api'));
+  : (window.location.port === '5000' ? '/api' : 'http://localhost:5000/api');
 
 const formatVND = val => (Math.round(val || 0)).toLocaleString('vi-VN') + ' đ';
 
@@ -126,6 +128,13 @@ function normalizeBooking(b) {
 
 // ─── Khởi chạy ứng dụng ────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Cập nhật link API trên top bar
+  const apiLink = document.getElementById('api-link');
+  if (apiLink) {
+    apiLink.href = `${API_BASE}/RoomStatusMatrix`;
+    apiLink.innerText = isLocalhost ? 'DAB REST API (Port 5000)' : 'DAB REST API (Cloud SWA)';
+  }
+
   // Live Clock
   setInterval(() => {
     const now = new Date();
