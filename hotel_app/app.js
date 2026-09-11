@@ -6,13 +6,15 @@
 let roomsData = [], channelsData = [], bookingsData = [], customersData = [], activeCheckoutId = null;
 
 // Tự động nhận diện host API:
-// - Cloud / Azure Static Web Apps: tự động trỏ vào proxy /data-api/rest
-// - Localhost (chạy qua file/live server): kết nối tới http://localhost:5000/api
-// - Localhost (port 5000 do DAB host trực tiếp): /api
+// - Cấu hình ACA URL trực tiếp qua localStorage hoặc window.DAB_API_BASE
+// - Localhost (port 5000 / DAB): /api hoặc http://localhost:5000/api
+// - Mặc định fallback: /api
+// ponytail: default relative /api requires CORS or reverse proxy -> configure ACA URL in localStorage.setItem('DAB_API_BASE', 'https://<aca-fqdn>/api')
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const API_BASE = !isLocalhost 
-  ? '/data-api/rest' 
-  : (window.location.port === '5000' ? '/api' : 'http://localhost:5000/api');
+const customApiBase = window.DAB_API_BASE || localStorage.getItem('DAB_API_BASE');
+const API_BASE = customApiBase 
+  ? customApiBase.replace(/\/$/, '') 
+  : (isLocalhost ? (window.location.port === '5000' ? '/api' : 'http://localhost:5000/api') : '/api');
 
 const formatVND = val => (Math.round(val || 0)).toLocaleString('vi-VN') + ' đ';
 
