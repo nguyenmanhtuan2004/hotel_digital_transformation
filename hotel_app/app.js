@@ -123,25 +123,20 @@ function normalizeBooking(b) {
 
 // ─── Khởi chạy ứng dụng ────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  // Cập nhật link API trên top bar
-  const apiLink = document.getElementById('api-link');
-  if (apiLink) {
-    apiLink.href = `${API_BASE}/RoomStatusMatrix`;
-    apiLink.innerText = isLocalhost ? 'DAB REST API (Local)' : 'DAB REST API (Azure Container Apps)';
-  }
-
-  // Live Clock
-  setInterval(() => {
-    const now = new Date();
-    const timeEl = document.getElementById('live-time');
-    if (timeEl) timeEl.innerText = now.toLocaleTimeString('vi-VN') + ' | ' + now.toLocaleDateString('vi-VN');
-  }, 1000);
-
   resetCheckinForm();
   initAllData();
 });
 
-async function initAllData() {
+async function reloadAllData() {
+  const statusText = document.getElementById('header-status-text');
+  const statusDot = document.getElementById('header-status-dot');
+  if (statusText) statusText.innerText = 'ĐANG KẾT NỐI AZURE DAB...';
+  if (statusDot) statusDot.style.background = 'var(--v-blue)';
+  showToast('Đang gửi request kết nối & tải dữ liệu từ Azure DAB...');
+  await initAllData(true);
+}
+
+async function initAllData(isManual = false) {
   const statusText = document.getElementById('header-status-text');
   const statusDot = document.getElementById('header-status-dot');
   try {
@@ -156,6 +151,7 @@ async function initAllData() {
     if (roomsData.length > 0 || channelsData.length > 0) {
       if (statusText) statusText.innerText = 'HỆ THỐNG TRỰC TUYẾN (AZURE DAB ACTIVE)';
       if (statusDot) statusDot.style.background = '#10b981';
+      if (isManual) showToast('Đã tải dữ liệu thành công từ Azure DAB');
     } else {
       if (statusText) statusText.innerText = 'CHƯA NHẬN ĐƯỢC DỮ LIỆU TỪ API';
     }
@@ -163,7 +159,7 @@ async function initAllData() {
     console.error("Lỗi đồng bộ dữ liệu ban đầu:", err);
     if (statusText) statusText.innerText = 'LỖI KẾT NỐI AZURE DAB';
     if (statusDot) statusDot.style.background = '#ef4444';
-    showToast('⚠️ Không thể tải dữ liệu từ Azure DAB. Vui lòng kiểm tra kết nối.');
+    showToast('Không thể tải dữ liệu từ Azure DAB. Nếu Azure đang ngủ, vui lòng bấm "Tải lại dữ liệu" sau 15-30 giây.');
   }
 }
 
@@ -274,12 +270,14 @@ function renderRoomsList(list) {
     if (r.status === 'occupied') { badge = 'badge-occupied'; text = 'Đang ở'; }
     if (r.status === 'cleaning') { badge = 'badge-cleaning'; text = 'Đang dọn'; }
 
-    let action = '-';
+    let primaryAction = '';
     if (r.status === 'cleaning') {
-      action = `<button class="btn btn-success btn-sm" onclick="updateRoomCleanAction(${r.room_id}, 'clean')">Đã dọn xong</button>`;
+      primaryAction = `<button class="btn btn-success btn-sm" onclick="updateRoomCleanAction(${r.room_id}, 'clean')" title="Đã dọn dẹp xong">Dọn xong</button>`;
     } else if (r.status === 'available') {
-      action = `<button class="btn btn-vinamilk btn-sm" onclick="quickSelectRoom(${r.room_id})">Check-in</button>`;
+      primaryAction = `<button class="btn btn-vinamilk btn-sm" onclick="quickSelectRoom(${r.room_id})" title="Nhận phòng ngay">Check-in</button>`;
     }
+
+    const editBtn = `<button class="btn btn-edit btn-sm" onclick="openRoomModal(${r.room_id})" title="Sửa thông tin phòng">Sửa</button>`;
 
     return `
       <tr>
@@ -288,7 +286,12 @@ function renderRoomsList(list) {
         <td>Tầng ${r.floor}</td>
         <td><strong>${formatVND(r.base_price)}</strong></td>
         <td><span class="status-badge ${badge}">${text}</span></td>
-        <td>${action}</td>
+        <td>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            ${primaryAction}
+            ${editBtn}
+          </div>
+        </td>
       </tr>
     `;
   }).join('');
@@ -298,6 +301,139 @@ function resetRoomsFilter() {
   if (document.getElementById('search-rooms')) document.getElementById('search-rooms').value = '';
   if (document.getElementById('filter-room-st')) document.getElementById('filter-room-st').value = 'all';
   filterRoomsList();
+}
+
+// ─── Quản lý Thêm / Sửa / Xóa Phòng (CRUD DimRoom qua DAB) ───
+function openRoomModal(roomId = null) {
+  const modal = document.getElementById('room-modal');
+  const title = document.getElementById('room-modal-title');
+  const form = document.getElementById('form-room');
+  const delBtn = document.getElementById('btn-delete-room');
+  if (form) form.reset();
+
+  const idInput = document.getElementById('modal-room-id');
+  const numInput = document.getElementById('modal-room-number');
+  const floorInput = document.getElementById('modal-room-floor');
+  const typeInput = document.getElementById('modal-room-type');
+  const priceInput = document.getElementById('modal-room-price');
+  const stInput = document.getElementById('modal-room-status');
+
+  if (roomId) {
+    const room = roomsData.find(r => r.room_id === roomId);
+    if (!room) return;
+    if (title) title.innerText = `Chỉnh Sửa Phòng ${room.room_number}`;
+    if (idInput) idInput.value = room.room_id;
+    if (numInput) numInput.value = room.room_number;
+    if (floorInput) floorInput.value = room.floor;
+    if (typeInput) typeInput.value = room.room_type;
+    if (priceInput) priceInput.value = room.base_price;
+    if (stInput) stInput.value = room.status;
+    if (delBtn) delBtn.style.display = 'block';
+  } else {
+    if (title) title.innerText = 'Thêm Phòng Mới';
+    if (idInput) idInput.value = '';
+    if (floorInput) floorInput.value = 1;
+    if (priceInput) priceInput.value = 350000;
+    if (stInput) stInput.value = 'available';
+    if (delBtn) delBtn.style.display = 'none';
+  }
+
+  if (modal) modal.classList.add('show');
+}
+
+function handleDeleteFromModal() {
+  const id = parseInt(document.getElementById('modal-room-id').value);
+  const num = document.getElementById('modal-room-number').value;
+  const st = document.getElementById('modal-room-status').value;
+  if (!id) return;
+  closeRoomModal();
+  deleteRoomAction(id, num, st);
+}
+
+function closeRoomModal() {
+  const modal = document.getElementById('room-modal');
+  if (modal) modal.classList.remove('show');
+}
+
+async function saveRoomAction(e) {
+  e.preventDefault();
+  const id = document.getElementById('modal-room-id').value;
+  const roomNumber = document.getElementById('modal-room-number').value.trim();
+  const floor = parseInt(document.getElementById('modal-room-floor').value) || 1;
+  const roomType = document.getElementById('modal-room-type').value;
+  const basePrice = parseFloat(document.getElementById('modal-room-price').value) || 0;
+  const status = document.getElementById('modal-room-status').value;
+
+  if (!roomNumber) {
+    showToast('Vui lòng nhập số phòng');
+    return;
+  }
+
+  try {
+    if (id) {
+      // Cập nhật phòng (PATCH qua DAB)
+      const res = await fetch(`${API_BASE}/DimRoom/RoomID/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          RoomNumber: roomNumber,
+          RoomType: roomType,
+          Floor: floor,
+          BasePrice: basePrice,
+          Status: status
+        })
+      });
+      if (!res.ok) throw new Error('Không thể cập nhật thông tin phòng');
+      showToast(`Đã cập nhật phòng ${roomNumber} thành công`);
+    } else {
+      // Thêm phòng mới (POST qua DAB)
+      const res = await fetch(`${API_BASE}/DimRoom`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          RoomNumber: roomNumber,
+          RoomType: roomType,
+          Floor: floor,
+          BasePrice: basePrice,
+          Status: status,
+          CleanStatus: 'clean'
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || err.detail || 'Không thể tạo phòng mới');
+      }
+      showToast(`Đã thêm phòng ${roomNumber} mới thành công`);
+    }
+
+    closeRoomModal();
+    await initAllData();
+  } catch (err) {
+    showToast(`Lỗi: ${err.message}`);
+  }
+}
+
+async function deleteRoomAction(roomId, roomNumber, status) {
+  if (status === 'occupied') {
+    showToast(`Phòng ${roomNumber} đang có khách ở, vui lòng thực hiện Check-out trước khi xóa!`);
+    return;
+  }
+
+  if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn Phòng ${roomNumber} khỏi hệ thống?`)) {
+    try {
+      const res = await fetch(`${API_BASE}/DimRoom/RoomID/${roomId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok || res.status === 204) {
+        showToast(`Đã xóa phòng ${roomNumber} thành công`);
+        await initAllData();
+      } else {
+        showToast(`Không thể xóa phòng ${roomNumber} (có thể phòng đã có dữ liệu đặt phòng liên kết)`);
+      }
+    } catch (err) {
+      showToast(`Lỗi khi xóa phòng: ${err.message}`);
+    }
+  }
 }
 
 async function updateRoomCleanAction(roomId, cleanStatus) {
@@ -678,7 +814,14 @@ function renderBookingsList(list) {
     if (b.booking_status === 'CHECKIN') {
       actions = `
         <button class="btn btn-success btn-sm" onclick="openCheckoutModal('${b.booking_id}','${b.customer_name}','${b.room_number}','${b.check_in_time}')">Trả phòng</button>
+        <button class="btn btn-edit btn-sm" onclick="openEditBookingModal('${b.booking_id}')">Sửa sổ cái</button>
         <button class="btn btn-danger btn-sm" onclick="cancelBookingAction('${b.booking_id}', ${b.room_id})">Hủy</button>
+      `;
+    } else if (b.booking_status === 'CHECKOUT') {
+      actions = `
+        <button class="btn ${b.balance_due > 0 ? 'btn-vinamilk' : 'btn-edit'} btn-sm" onclick="openEditBookingModal('${b.booking_id}')">
+          ${b.balance_due > 0 ? 'Thu nợ / Sửa' : 'Sửa sổ cái'}
+        </button>
       `;
     }
 
@@ -784,7 +927,149 @@ async function cancelBookingAction(bid, roomId) {
   }
 }
 
-// ─── 8. Customers (Gọi DAB: DimCustomer) ───────────────
+// ─── 8. Edit Booking / Settle Debt Modal ─────────────
+function openEditBookingModal(bid) {
+  const b = bookingsData.find(x => x.booking_id === bid);
+  if (!b) {
+    showToast('Không tìm thấy thông tin đơn đặt phòng');
+    return;
+  }
+
+  const channel = channelsData.find(c => c.channel_id === b.channel_id);
+  const commRate = channel ? channel.commission_rate : 0;
+
+  document.getElementById('eb-booking-id').value = b.booking_id;
+  document.getElementById('eb-bid').innerText = b.booking_id;
+  document.getElementById('eb-cust').innerText = b.customer_name || 'Khách vãng lai';
+  document.getElementById('eb-room').innerText = b.room_number ? `P.${b.room_number}` : '--';
+  
+  const badgeEl = document.getElementById('eb-badge');
+  if (badgeEl) {
+    badgeEl.innerText = b.booking_status;
+    badgeEl.className = 'status-badge ' + (b.booking_status === 'CHECKOUT' ? 'badge-checkout' : 'badge-checkin');
+  }
+
+  document.getElementById('eb-room-revenue').value = b.room_revenue || 0;
+  document.getElementById('eb-roomrev-text').innerText = formatVND(b.room_revenue);
+  document.getElementById('eb-comm-rate').value = commRate;
+
+  document.getElementById('eb-servrev').value = b.service_revenue || 0;
+  document.getElementById('eb-cash').value = b.cash_amount || 0;
+  document.getElementById('eb-card').value = b.card_amount || 0;
+  document.getElementById('eb-trans').value = b.transfer_amount || 0;
+  document.getElementById('eb-debt').value = b.debt_amount || 0;
+
+  calculateEditBookingFinances();
+  document.getElementById('edit-booking-modal').classList.add('show');
+}
+
+function closeEditBookingModal() {
+  document.getElementById('edit-booking-modal').classList.remove('show');
+}
+
+function calculateEditBookingFinances() {
+  const roomRev = parseFloat(document.getElementById('eb-room-revenue').value) || 0;
+  const servRev = parseFloat(document.getElementById('eb-servrev').value) || 0;
+  const cash = parseFloat(document.getElementById('eb-cash').value) || 0;
+  const card = parseFloat(document.getElementById('eb-card').value) || 0;
+  const trans = parseFloat(document.getElementById('eb-trans').value) || 0;
+  const debt = parseFloat(document.getElementById('eb-debt').value) || 0;
+
+  const total = roomRev + servRev;
+  const paid = cash + card + trans + debt;
+  const due = total - paid;
+
+  const totalEl = document.getElementById('eb-total-text');
+  if (totalEl) totalEl.innerText = formatVND(total);
+
+  const paidEl = document.getElementById('eb-paid-text');
+  if (paidEl) paidEl.innerText = formatVND(paid);
+
+  const dueEl = document.getElementById('eb-due-text');
+  if (dueEl) {
+    dueEl.innerText = formatVND(due);
+    dueEl.style.color = due <= 0 ? 'var(--success)' : 'var(--danger)';
+  }
+}
+
+function settleAllVia(type) {
+  const roomRev = parseFloat(document.getElementById('eb-room-revenue').value) || 0;
+  const servRev = parseFloat(document.getElementById('eb-servrev').value) || 0;
+  const total = roomRev + servRev;
+
+  let cash = parseFloat(document.getElementById('eb-cash').value) || 0;
+  let card = parseFloat(document.getElementById('eb-card').value) || 0;
+  let trans = parseFloat(document.getElementById('eb-trans').value) || 0;
+
+  // Xóa số nợ treo cũ khi đã thu đủ
+  document.getElementById('eb-debt').value = 0;
+
+  if (type === 'trans') {
+    const remaining = Math.max(0, total - cash - card);
+    document.getElementById('eb-trans').value = remaining;
+  } else if (type === 'cash') {
+    const remaining = Math.max(0, total - card - trans);
+    document.getElementById('eb-cash').value = remaining;
+  }
+
+  calculateEditBookingFinances();
+}
+
+async function saveEditBookingAction(e) {
+  e.preventDefault();
+  const bid = document.getElementById('eb-booking-id').value;
+  const roomRev = parseFloat(document.getElementById('eb-room-revenue').value) || 0;
+  const servRev = parseFloat(document.getElementById('eb-servrev').value) || 0;
+  const cash = parseFloat(document.getElementById('eb-cash').value) || 0;
+  const card = parseFloat(document.getElementById('eb-card').value) || 0;
+  const trans = parseFloat(document.getElementById('eb-trans').value) || 0;
+  const debt = parseFloat(document.getElementById('eb-debt').value) || 0;
+  const commRate = parseFloat(document.getElementById('eb-comm-rate').value) || 0;
+
+  const grossRev = roomRev + servRev;
+  const commAmount = roomRev * commRate;
+  const netRev = grossRev - commAmount;
+  const balanceDue = grossRev - (cash + card + trans + debt);
+
+  const btn = document.getElementById('btn-save-eb');
+  if (btn) btn.disabled = true;
+
+  try {
+    const payload = {
+      ServiceRevenue: servRev,
+      GrossRevenue: grossRev,
+      CommissionAmount: commAmount,
+      NetRevenue: netRev,
+      CashAmount: cash,
+      CardAmount: card,
+      TransferAmount: trans,
+      DebtAmount: debt,
+      BalanceDue: balanceDue,
+      UpdatedAt: new Date().toISOString()
+    };
+
+    const res = await fetch(`${API_BASE}/FactBooking/BookingID/${encodeURIComponent(bid)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error?.message || errData.detail || `HTTP ${res.status}`);
+    }
+
+    closeEditBookingModal();
+    showToast(`Đã cập nhật sổ cái đơn ${bid} thành công!`);
+    await initAllData();
+  } catch (err) {
+    showToast(`Lỗi cập nhật sổ cái: ${err.message}`);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ─── 9. Customers (Gọi DAB: DimCustomer) ───────────────
 async function fetchCustomers() {
   try {
     const raw = await apiGet('DimCustomer');
@@ -834,3 +1119,49 @@ function resetCustomersFilter() {
   if (document.getElementById('search-customers')) document.getElementById('search-customers').value = '';
   filterCustomersList();
 }
+
+// ─── 9. Tự động nhận diện khách hàng quen qua Số Điện Thoại ───
+// ponytail: instant in-memory lookup from customersData/bookingsData with fallback
+function handlePhoneLookup() {
+  const phoneInput = document.getElementById('f-phone');
+  if (!phoneInput) return;
+  const rawPhone = phoneInput.value.trim().replace(/[\s\-\.\(\)]/g, '');
+  if (rawPhone.length < 8) return; // Chỉ tìm khi nhập từ 8 ký tự trở lên
+
+  // Tìm trong danh mục DimCustomer đã nạp
+  let matched = customersData.find(c => {
+    if (!c.phone_number) return false;
+    const cleanP = String(c.phone_number).trim().replace(/[\s\-\.\(\)]/g, '');
+    return cleanP === rawPhone || (cleanP.length >= 8 && rawPhone.endsWith(cleanP)) || (rawPhone.length >= 8 && cleanP.endsWith(rawPhone));
+  });
+
+  // Nếu chưa có trong DimCustomer, tìm lịch sử trong FactBooking
+  if (!matched && bookingsData && bookingsData.length > 0) {
+    const bMatch = bookingsData.find(b => {
+      if (!b.customer_phone) return false;
+      const cleanP = String(b.customer_phone).trim().replace(/[\s\-\.\(\)]/g, '');
+      return cleanP === rawPhone || (cleanP.length >= 8 && rawPhone.endsWith(cleanP)) || (rawPhone.length >= 8 && cleanP.endsWith(rawPhone));
+    });
+    if (bMatch) {
+      matched = {
+        full_name: bMatch.customer_name,
+        phone_number: bMatch.customer_phone,
+        id_number: '',
+        nationality: 'Việt Nam'
+      };
+    }
+  }
+
+  if (matched) {
+    const nameEl = document.getElementById('f-name');
+    const idEl = document.getElementById('f-idnum');
+    const nationEl = document.getElementById('f-nation');
+
+    if (nameEl && matched.full_name) nameEl.value = matched.full_name;
+    if (idEl && matched.id_number) idEl.value = matched.id_number;
+    if (nationEl && matched.nationality) nationEl.value = matched.nationality;
+
+    showToast(`Đã nhận diện khách quen: ${matched.full_name}`);
+  }
+}
+

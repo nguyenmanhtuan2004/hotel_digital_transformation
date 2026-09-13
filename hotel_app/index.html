@@ -18,10 +18,6 @@
   <!-- Top Announcement Bar (Vinamilk Style) -->
   <div class="top-announcement">
     <div>A26 HOTEL — HỆ THỐNG QUẢN TRỊ VẬN HÀNH (AZURE DATA API BUILDER + AZURE SQL)</div>
-    <div class="top-links">
-      <span id="live-time">--:--:--</span>
-      <a id="api-link" href="http://localhost:5000/api/RoomStatusMatrix" target="_blank" class="btn-swagger-pill">DAB REST API (Azure Cloud)</a>
-    </div>
   </div>
 
   <!-- Header Main -->
@@ -30,44 +26,21 @@
       <div class="brand-logo-badge" style="font-size: 1rem; width: 48px;">A26</div>
       <div>
         <div class="brand-title">A26 HOTEL</div>
-        <div class="brand-subtitle">Hệ Thống Quản Lý Lưu Trú & Sổ Cái Thu Ngân Chuẩn 21 Cột</div>
       </div>
     </div>
-    <div class="header-info-badge" id="header-status-badge">
-      <div class="dot-pulse" id="header-status-dot"></div>
-      <span id="header-status-text">ĐANG KẾT NỐI AZURE DAB...</span>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button type="button" class="btn btn-outline btn-sm" onclick="reloadAllData()" title="Đánh thức / Tải lại dữ liệu từ Azure DAB" style="background: #ffffff;">
+        Tải lại dữ liệu
+      </button>
+      <div class="header-info-badge" id="header-status-badge">
+        <div class="dot-pulse" id="header-status-dot"></div>
+        <span id="header-status-text">ĐANG KẾT NỐI AZURE DAB...</span>
+      </div>
     </div>
   </header>
 
   <!-- Container -->
   <div class="container">
-
-    <!-- KPI Stats Cards (Vinamilk Style) -->
-    <div class="stats-row">
-      <div class="kpi-card">
-        <div class="kpi-label">Doanh Thu Gộp (Gross)</div>
-        <div class="kpi-value" id="kpi-gross">0 đ</div>
-        <div class="kpi-sub">Tiền phòng + dịch vụ toàn tháng</div>
-      </div>
-
-      <div class="kpi-card">
-        <div class="kpi-label">Doanh Thu Thuần (Net)</div>
-        <div class="kpi-value" id="kpi-net">0 đ</div>
-        <div class="kpi-sub">Đã khấu trừ phí hoa hồng OTA</div>
-      </div>
-
-      <div class="kpi-card">
-        <div class="kpi-label">Tỷ Lệ Lấp Đầy Phòng</div>
-        <div class="kpi-value" id="kpi-occ">0%</div>
-        <div class="kpi-sub" id="kpi-occ-ratio">0/20 phòng đang lưu trú</div>
-      </div>
-
-      <div class="kpi-card">
-        <div class="kpi-label">Tổng Lượt Lưu Trú</div>
-        <div class="kpi-value" id="kpi-count">0</div>
-        <div class="kpi-sub">Số lượt check-in ghi nhận</div>
-      </div>
-    </div>
 
     <!-- Navigation Tabs (Vinamilk Minimal Style) -->
     <nav class="tabs-nav-bar">
@@ -145,7 +118,7 @@
 
             <div class="form-group col-6">
               <label>Số Điện Thoại <span class="req">*</span></label>
-              <input type="tel" id="f-phone" required placeholder="0912345678">
+              <input type="tel" id="f-phone" required placeholder="0912345678" oninput="handlePhoneLookup()" onchange="handlePhoneLookup()">
             </div>
 
             <div class="form-group col-6">
@@ -250,13 +223,12 @@
           </div>
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <input type="text" id="search-q" placeholder="Tìm tên khách / SĐT / Mã BK / Phòng..." onkeyup="filterBookingsList()" style="width: 260px;">
-            <select id="filter-st" onchange="filterBookingsList()" style="width: 150px;">
+            <select id="filter-st" onchange="filterBookingsList()" style="width: 200px;">
               <option value="all">Tất cả trạng thái</option>
               <option value="CHECKIN">Đang ở (CHECKIN)</option>
               <option value="CHECKOUT">Đã trả (CHECKOUT)</option>
               <option value="CANCELLED">Đã hủy</option>
             </select>
-            <button class="btn btn-vinamilk" onclick="filterBookingsList()">Tìm kiếm</button>
             <button class="btn btn-outline" onclick="resetBookingsFilter()">Làm mới</button>
           </div>
         </div>
@@ -297,15 +269,17 @@
             <span>Danh Sách 20 Phòng</span>
           </div>
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <input type="text" id="search-rooms" placeholder="Tìm số phòng / hạng phòng / tầng..." onkeyup="filterRoomsList()" style="width: 250px;">
-            <select id="filter-room-st" onchange="filterRoomsList()" style="width: 150px;">
+            <input type="text" id="search-rooms" placeholder="Tìm số phòng / hạng phòng / tầng..." onkeyup="filterRoomsList()" style="width: 240px;">
+            <select id="filter-room-st" onchange="filterRoomsList()" style="width: 180px;">
               <option value="all">Tất cả trạng thái</option>
               <option value="available">Trống (Sẵn sàng)</option>
               <option value="occupied">Đang ở</option>
               <option value="cleaning">Đang dọn</option>
             </select>
-            <button class="btn btn-vinamilk" onclick="filterRoomsList()">Tìm kiếm</button>
             <button class="btn btn-outline" onclick="resetRoomsFilter()">Làm mới</button>
+            <button class="btn btn-vinamilk" onclick="openRoomModal()" style="display: inline-flex; align-items: center; gap: 4px;">
+              + Thêm phòng
+            </button>
           </div>
         </div>
 
@@ -338,7 +312,6 @@
           </div>
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <input type="text" id="search-customers" placeholder="Tìm tên khách / SĐT / CCCD / Quốc tịch..." onkeyup="filterCustomersList()" style="width: 320px;">
-            <button class="btn btn-vinamilk" onclick="filterCustomersList()">Tìm kiếm</button>
             <button class="btn btn-outline" onclick="resetCustomersFilter()">Làm mới</button>
           </div>
         </div>
@@ -371,12 +344,11 @@
           </div>
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <input type="text" id="search-channels" placeholder="Tìm tên kênh / mã..." onkeyup="filterChannelsList()" style="width: 230px;">
-            <select id="filter-chan-cat" onchange="filterChannelsList()" style="width: 150px;">
+            <select id="filter-chan-cat" onchange="filterChannelsList()" style="width: 180px;">
               <option value="all">Tất cả phân loại</option>
               <option value="Direct">Trực tiếp (Direct)</option>
               <option value="OTA">Sàn OTA</option>
             </select>
-            <button class="btn btn-vinamilk" onclick="filterChannelsList()">Tìm kiếm</button>
             <button class="btn btn-outline" onclick="resetChannelsFilter()">Làm mới</button>
           </div>
         </div>
@@ -417,6 +389,138 @@
         <button class="btn btn-outline" onclick="closeCheckoutModal()">Đóng</button>
         <button class="btn btn-vinamilk" onclick="confirmCheckoutAction()">Xác Nhận Trả Phòng</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal Thêm / Chỉnh Sửa Phòng -->
+  <div id="room-modal" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 480px;">
+      <h3 id="room-modal-title" style="font-family: 'Be Vietnam Pro', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--v-blue); margin-bottom: 1rem;">
+        Thêm Phòng Mới
+      </h3>
+      <form id="form-room" onsubmit="saveRoomAction(event)">
+        <input type="hidden" id="modal-room-id" value="">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Số Phòng <span class="req">*</span></label>
+            <input type="text" id="modal-room-number" required placeholder="VD: 106, 501">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Tầng <span class="req">*</span></label>
+            <input type="number" id="modal-room-floor" required min="1" max="50" value="1">
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label>Hạng Phòng <span class="req">*</span></label>
+          <select id="modal-room-type" required>
+            <option value="Standard">Standard</option>
+            <option value="Superior">Superior</option>
+            <option value="Deluxe">Deluxe</option>
+            <option value="Superior Quad">Superior Quad</option>
+            <option value="Deluxe VIP">Deluxe VIP</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label>Giá Niêm Yết / Đêm (VND) <span class="req">*</span></label>
+          <input type="number" id="modal-room-price" required min="0" step="10000" placeholder="VD: 350000">
+        </div>
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label>Trạng Thái</label>
+          <select id="modal-room-status">
+            <option value="available">Trống (Sẵn sàng)</option>
+            <option value="occupied">Đang ở</option>
+            <option value="cleaning">Đang dọn</option>
+          </select>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.2rem;">
+          <button type="button" class="btn btn-danger btn-sm" id="btn-delete-room" onclick="handleDeleteFromModal()" style="display: none;">Xóa phòng này</button>
+          <div style="display: flex; gap: 10px; margin-left: auto;">
+            <button type="button" class="btn btn-outline" onclick="closeRoomModal()">Hủy</button>
+            <button type="submit" class="btn btn-vinamilk" id="btn-save-room">Lưu Thông Tin</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Sửa Sổ Cái & Thu Nợ (Edit Booking / Settle Debt) -->
+  <div id="edit-booking-modal" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 540px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+        <h3 style="font-family: 'Be Vietnam Pro', sans-serif; font-size: 1.15rem; font-weight: 800; color: var(--v-blue); margin: 0;">
+          Cập Nhật Sổ Cái & Thu Tiền Nợ
+        </h3>
+        <span class="status-badge" id="eb-badge" style="font-size: 0.75rem;">CHECKOUT</span>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.9rem;">
+        Mã đơn: <strong id="eb-bid" style="color: var(--v-blue);">--</strong> | Khách: <strong id="eb-cust">--</strong> | Phòng: <strong id="eb-room">--</strong>
+      </p>
+
+      <form id="form-edit-booking" onsubmit="saveEditBookingAction(event)">
+        <input type="hidden" id="eb-booking-id" value="">
+        <input type="hidden" id="eb-room-revenue" value="0">
+        <input type="hidden" id="eb-comm-rate" value="0">
+
+        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span style="font-size: 0.84rem; color: #64748B;">Tiền phòng:</span>
+            <strong id="eb-roomrev-text" style="color: #1E293B; font-size: 0.9rem;">0 đ</strong>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-size: 0.8rem;">Tiền Dịch Vụ Phát Sinh (VND)</label>
+            <input type="number" id="eb-servrev" value="0" min="0" oninput="calculateEditBookingFinances()">
+          </div>
+        </div>
+
+        <div style="font-size: 0.84rem; font-weight: 700; color: #1E293B; margin-bottom: 6px;">
+          Sổ Cái Thu Tiền (Nhập số tiền thực thu)
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-size: 0.78rem;">Tiền Mặt</label>
+            <input type="number" id="eb-cash" value="0" min="0" oninput="calculateEditBookingFinances()">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-size: 0.78rem;">Thẻ Tín Dụng (POS)</label>
+            <input type="number" id="eb-card" value="0" min="0" oninput="calculateEditBookingFinances()">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-size: 0.78rem;">Chuyển Khoản / QR</label>
+            <input type="number" id="eb-trans" value="0" min="0" oninput="calculateEditBookingFinances()">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-size: 0.78rem;">Ghi Nợ (Treo)</label>
+            <input type="number" id="eb-debt" value="0" min="0" oninput="calculateEditBookingFinances()">
+          </div>
+        </div>
+
+        <!-- Quick actions: Gợi ý thanh toán nhanh -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="settleAllVia('trans')" style="font-size: 0.76rem; padding: 4px 8px;">
+            Thu hết nợ qua Chuyển Khoản
+          </button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="settleAllVia('cash')" style="font-size: 0.76rem; padding: 4px 8px;">
+            Thu hết nợ bằng Tiền Mặt
+          </button>
+        </div>
+
+        <!-- Realtime summary box inside modal -->
+        <div style="background: var(--v-blue-light); border: 1px solid var(--v-blue-pastel); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 0.75rem; color: #64748B;">Tổng Phải Thu: <strong id="eb-total-text" style="color: var(--v-blue);">0 đ</strong></div>
+            <div style="font-size: 0.75rem; color: #64748B;">Đã Thu (Tiền mặt + Thẻ + CK + Nợ): <strong id="eb-paid-text" style="color: var(--success);">0 đ</strong></div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 0.75rem; color: #64748B;">Còn Thiếu (Balance Due):</div>
+            <div id="eb-due-text" style="font-size: 1.15rem; font-weight: 800; color: var(--danger);">0 đ</div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn btn-outline" onclick="closeEditBookingModal()">Hủy</button>
+          <button type="submit" class="btn btn-vinamilk" id="btn-save-eb">Lưu Cập Nhật Sổ Cái</button>
+        </div>
+      </form>
     </div>
   </div>
 
