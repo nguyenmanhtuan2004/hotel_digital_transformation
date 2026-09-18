@@ -4,6 +4,8 @@
  */
 
 let roomsData = [], channelsData = [], bookingsData = [], customersData = [], activeCheckoutId = null;
+const PAGE_SIZE = 20;
+let currentBookingsPage = 1, currentCustomersPage = 1;
 
 // Cấu hình kết nối API DAB trên Azure Container Apps:
 // ponytail: default to live ACA DAB endpoint with optional localStorage override
@@ -44,22 +46,43 @@ function showToast(text) {
   setTimeout(() => { toast.style.display = 'none'; }, 3500);
 }
 
-// Helper giải nén data trả về từ DAB (DAB bọc mảng kết quả trong json.value)
-// ponytail: json.value ?? json handles both DAB standard envelope and direct array payloads
+// Helper giải nén data trả về từ DAB, tự động duyệt nextLink để lấy toàn bộ các trang (pagination)
+// ponytail: automatically iterate nextLink to load 100% of items without DAB 100-row page truncation
 async function apiGet(entityPath) {
-  const res = await fetch(`${API_BASE}/${entityPath}`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-  const json = await res.json();
-  return json.value ?? json;
+  let allItems = [];
+  let currentUrl = entityPath.startsWith('http') ? entityPath : `${API_BASE}/${entityPath}`;
+
+  while (currentUrl) {
+    const res = await fetch(currentUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const json = await res.json();
+
+    if (Array.isArray(json)) {
+      allItems = allItems.concat(json);
+      break;
+    } else if (json && Array.isArray(json.value)) {
+      allItems = allItems.concat(json.value);
+      if (json.nextLink) {
+        currentUrl = json.nextLink.startsWith('http') 
+          ? json.nextLink 
+          : `${API_BASE}${json.nextLink.startsWith('/') ? '' : '/'}${json.nextLink}`;
+      } else {
+        currentUrl = null;
+      }
+    } else {
+      return json;
+    }
+  }
+  return allItems;
 }
 
 // ─── Chuẩn hóa dữ liệu tương thích CSDL Azure SQL ───────
 function normalizeRoom(r) {
   return {
-    room_id: r.RoomID ?? r.room_id,
+    room_id: Number(r.RoomID ?? r.room_id),
     room_number: r.RoomNumber ?? r.room_number,
     room_type: r.RoomType ?? r.room_type,
-    floor: r.Floor ?? r.floor,
+    floor: Number(r.Floor ?? r.floor ?? 1),
     base_price: Number(r.BasePrice ?? r.base_price ?? 0),
     status: (r.RoomStatus ?? r.Status ?? r.status ?? 'available').toLowerCase(),
     clean_status: (r.CleanStatus ?? r.clean_status ?? 'clean').toLowerCase(),
@@ -75,7 +98,7 @@ function normalizeRoom(r) {
 function normalizeChannel(c) {
   const comm = Number(c.CommissionRate ?? c.commission_rate ?? 0);
   return {
-    channel_id: c.ChannelID ?? c.channel_id,
+    channel_id: Number(c.ChannelID ?? c.channel_id),
     channel_name: c.ChannelName ?? c.channel_name,
     channel_category: c.ChannelCategory ?? c.channel_category ?? 'Direct',
     commission_rate: comm > 1 ? (comm / 100) : comm
@@ -84,9 +107,9 @@ function normalizeChannel(c) {
 
 function normalizeCustomer(c) {
   return {
-    customer_id: c.CustomerID ?? c.customer_id,
-    full_name: c.FullName ?? c.full_name,
-    phone_number: c.PhoneNumber ?? c.phone_number,
+    customer_id: Number(c.CustomerID ?? c.customer_id),
+    full_name: c.FullName ?? c.full_name ?? '',
+    phone_number: c.PhoneNumber ?? c.phone_number ?? '',
     id_number: c.IdNumber ?? c.id_number,
     nationality: c.Nationality ?? c.nationality ?? 'Việt Nam'
   };
@@ -95,12 +118,12 @@ function normalizeCustomer(c) {
 function normalizeBooking(b) {
   return {
     booking_id: b.BookingID ?? b.booking_id,
-    customer_id: b.CustomerID ?? b.customer_id,
+    customer_id: Number(b.CustomerID ?? b.customer_id),
     customer_name: b.CustomerName ?? b.customer_name ?? b.FullName ?? b.full_name ?? '',
     customer_phone: b.CustomerPhone ?? b.customer_phone ?? b.PhoneNumber ?? b.phone_number ?? '',
-    room_id: b.RoomID ?? b.room_id,
+    room_id: Number(b.RoomID ?? b.room_id),
     room_number: b.RoomNumber ?? b.room_number ?? '',
-    channel_id: b.ChannelID ?? b.channel_id,
+    channel_id: Number(b.ChannelID ?? b.channel_id),
     check_in_time: b.CheckInTime ?? b.check_in_time,
     check_out_time: b.CheckOutTime ?? b.check_out_time,
     nights: Number(b.Nights ?? b.nights ?? 1),
@@ -436,18 +459,20 @@ async function deleteRoomAction(roomId, roomNumber, status) {
   }
 }
 
-async function updateRoomCleanAction(roomId, cleanStatus) {
+async function updateRoomCleanAction(roomId, cleanStatus = 'clean') {
   try {
-    const res = await fetch(`${API_BASE}/UpdateCleanStatus`, {
-      method: 'POST',
+    const res = await fetch(`${API_BASE}/DimRoom/RoomID/${roomId}`, {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        RoomID: roomId,
-        CleanStatus: cleanStatus
+        Status: 'available',
+        CleanStatus: cleanStatus,
+        LastCleanedAt: new Date().toISOString()
       })
     });
+
     if (res.ok) {
-      showToast('Đã cập nhật buồng phòng thành công!');
+      showToast('Đã dọn dẹp xong - Phòng đã sẵn sàng đón khách!');
       await initAllData();
     } else {
       showToast('Lỗi cập nhật buồng phòng');
@@ -726,19 +751,19 @@ async function fetchBookings() {
     const raw = await apiGet('FactBooking?$orderby=CreatedAt desc');
     
     // Enrich với tên khách và số phòng từ cache
-    const custMap = new Map(customersData.map(c => [c.customer_id, c]));
-    const roomMap = new Map(roomsData.map(r => [r.room_id, r]));
+    const custMap = new Map(customersData.map(c => [Number(c.customer_id), c]));
+    const roomMap = new Map(roomsData.map(r => [Number(r.room_id), r]));
 
     bookingsData = raw.map(b => {
       const norm = normalizeBooking(b);
-      const cust = custMap.get(norm.customer_id);
-      const room = roomMap.get(norm.room_id);
+      const cust = custMap.get(Number(norm.customer_id));
+      const room = roomMap.get(Number(norm.room_id));
       if (cust) {
-        norm.customer_name = cust.full_name;
-        norm.customer_phone = cust.phone_number;
+        norm.customer_name = cust.full_name || norm.customer_name;
+        norm.customer_phone = cust.phone_number || norm.customer_phone;
       }
       if (room) {
-        norm.room_number = room.room_number;
+        norm.room_number = room.room_number || norm.room_number;
       }
       return norm;
     });
@@ -749,9 +774,11 @@ async function fetchBookings() {
   }
 }
 
-function filterBookingsList() {
+function filterBookingsList(resetPage = false) {
+  if (resetPage) currentBookingsPage = 1;
   const q = (document.getElementById('search-q')?.value || '').trim().toLowerCase();
   const st = (document.getElementById('filter-st')?.value) || 'all';
+  const dueFilter = (document.getElementById('filter-due')?.value) || 'all';
 
   const isGenericPrefix = (q === 'b' || q === 'bk' || q === 'bk-' || q === 'bk_');
 
@@ -768,16 +795,45 @@ function filterBookingsList() {
     }
 
     const matchSt = (st === 'all') || (b.booking_status === st);
-    return matchQ && matchSt;
+
+    let matchDue = true;
+    const due = Number(b.balance_due || 0);
+    if (dueFilter === 'unpaid') {
+      matchDue = due > 0;
+    } else if (dueFilter === 'paid') {
+      matchDue = due === 0;
+    } else if (dueFilter === 'overpaid') {
+      matchDue = due < 0;
+    }
+
+    return matchQ && matchSt && matchDue;
   });
 
-  renderBookingsList(filtered);
+  const totalItems = filtered.length;
+  const totalPages = Math.ceil(totalItems / PAGE_SIZE) || 1;
+  if (currentBookingsPage > totalPages) currentBookingsPage = totalPages;
+  if (currentBookingsPage < 1) currentBookingsPage = 1;
+
+  const startIdx = (currentBookingsPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+
+  renderBookingsList(pageItems);
+  renderPaginationControls('pagination-controls-bookings', 'pagination-info-bookings', currentBookingsPage, totalPages, totalItems, 'đơn', 'goToBookingsPage');
+}
+
+function goToBookingsPage(page) {
+  currentBookingsPage = page;
+  filterBookingsList(false);
+  const tableEl = document.getElementById('tab-bookings');
+  if (tableEl) tableEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function resetBookingsFilter() {
   if (document.getElementById('search-q')) document.getElementById('search-q').value = '';
   if (document.getElementById('filter-st')) document.getElementById('filter-st').value = 'all';
-  filterBookingsList();
+  if (document.getElementById('filter-due')) document.getElementById('filter-due').value = 'all';
+  currentBookingsPage = 1;
+  filterBookingsList(true);
 }
 
 function renderBookingsList(list) {
@@ -912,11 +968,11 @@ async function cancelBookingAction(bid, roomId) {
 
       // Cập nhật trạng thái DimRoom
       if (roomId) {
-        await fetch(`${API_BASE}/UpdateCleanStatus`, {
-          method: 'POST',
+        await fetch(`${API_BASE}/DimRoom/RoomID/${roomId}`, {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ RoomID: roomId, CleanStatus: 'clean' })
-        });
+          body: JSON.stringify({ Status: 'available', CleanStatus: 'clean' })
+        }).catch(() => {});
       }
 
       showToast('Đã hủy đơn thành công!');
@@ -1080,7 +1136,8 @@ async function fetchCustomers() {
   }
 }
 
-function filterCustomersList() {
+function filterCustomersList(resetPage = false) {
+  if (resetPage) currentCustomersPage = 1;
   const q = (document.getElementById('search-customers')?.value || '').trim().toLowerCase();
 
   const filtered = customersData.filter(c => {
@@ -1093,7 +1150,23 @@ function filterCustomersList() {
     ).toLowerCase().includes(q);
   });
 
-  renderCustomersList(filtered);
+  const totalItems = filtered.length;
+  const totalPages = Math.ceil(totalItems / PAGE_SIZE) || 1;
+  if (currentCustomersPage > totalPages) currentCustomersPage = totalPages;
+  if (currentCustomersPage < 1) currentCustomersPage = 1;
+
+  const startIdx = (currentCustomersPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(startIdx, startIdx + PAGE_SIZE);
+
+  renderCustomersList(pageItems);
+  renderPaginationControls('pagination-customers-controls', 'pagination-info-customers', currentCustomersPage, totalPages, totalItems, 'khách hàng', 'goToCustomersPage');
+}
+
+function goToCustomersPage(page) {
+  currentCustomersPage = page;
+  filterCustomersList(false);
+  const tableEl = document.getElementById('tab-customers');
+  if (tableEl) tableEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function renderCustomersList(list) {
@@ -1108,7 +1181,7 @@ function renderCustomersList(list) {
     <tr>
       <td>${c.customer_id}</td>
       <td><strong style="color:var(--v-blue);">${c.full_name}</strong></td>
-      <td>${c.phone_number}</td>
+      <td>${c.phone_number || '-'}</td>
       <td>${c.id_number || '-'}</td>
       <td>${c.nationality || 'Việt Nam'}</td>
     </tr>
@@ -1117,7 +1190,61 @@ function renderCustomersList(list) {
 
 function resetCustomersFilter() {
   if (document.getElementById('search-customers')) document.getElementById('search-customers').value = '';
-  filterCustomersList();
+  currentCustomersPage = 1;
+  filterCustomersList(true);
+}
+
+// ─── Reusable Pagination Renderer ──────────────────────
+function renderPaginationControls(containerId, infoId, currentPage, totalPages, totalCount, itemName, onPageChangeName) {
+  const infoEl = document.getElementById(infoId);
+  const containerEl = document.getElementById(containerId);
+  if (!containerEl) return;
+
+  if (totalCount === 0) {
+    if (infoEl) infoEl.innerText = `0 ${itemName}`;
+    containerEl.innerHTML = '';
+    return;
+  }
+
+  const start = (currentPage - 1) * PAGE_SIZE + 1;
+  const end = Math.min(currentPage * PAGE_SIZE, totalCount);
+  if (infoEl) {
+    infoEl.innerHTML = `Hiển thị <strong>${start}–${end}</strong> / <strong>${totalCount.toLocaleString('vi-VN')}</strong> ${itemName} (Trang ${currentPage}/${totalPages})`;
+  }
+
+  if (totalPages <= 1) {
+    containerEl.innerHTML = '';
+    return;
+  }
+
+  let html = '';
+
+  // Nút First & Prev
+  html += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="${onPageChangeName}(1)" title="Trang đầu">&laquo;</button>`;
+  html += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="${onPageChangeName}(${currentPage - 1})" title="Trang trước">&lsaquo;</button>`;
+
+  // Sinh các số trang thông minh: Luôn hiển thị trang 1, trang cuối, và các trang lân cận currentPage (-2 đến +2)
+  let pages = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+      pages.push(i);
+    }
+  }
+
+  let prev = 0;
+  for (const p of pages) {
+    if (prev && p - prev > 1) {
+      html += `<span class="page-dots">...</span>`;
+    }
+    html += `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="${onPageChangeName}(${p})">${p}</button>`;
+    prev = p;
+  }
+
+  // Nút Next & Last
+  html += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="${onPageChangeName}(${currentPage + 1})" title="Trang sau">&rsaquo;</button>`;
+  html += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="${onPageChangeName}(${totalPages})" title="Trang cuối">&raquo;</button>`;
+
+  containerEl.innerHTML = html;
 }
 
 // ─── 9. Tự động nhận diện khách hàng quen qua Số Điện Thoại ───
@@ -1165,3 +1292,13 @@ function handlePhoneLookup() {
   }
 }
 
+// Helper tải lại iframe Dashboard Power BI
+function reloadDashboardIframe() {
+  const iframe = document.getElementById('pbi-iframe');
+  if (iframe) {
+    const src = iframe.src;
+    iframe.src = '';
+    iframe.src = src;
+    showToast('Đang tải lại Dashboard Power BI...');
+  }
+}

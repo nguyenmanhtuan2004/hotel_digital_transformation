@@ -84,16 +84,6 @@
       "permissions": [
         { "role": "anonymous", "actions": ["execute"] }
       ]
-    },
-    "UpdateCleanStatus": {
-      "source": {
-        "object": "dbo.sp_UpdateRoomCleanStatus",
-        "type": "stored-procedure"
-      },
-      "rest": { "methods": ["post"] },
-      "permissions": [
-        { "role": "anonymous", "actions": ["execute"] }
-      ]
     }
   }
 }

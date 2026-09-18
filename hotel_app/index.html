@@ -59,6 +59,9 @@
       <button class="tab-item" onclick="switchNavTab('tab-channels')">
         <span>Kênh OTA</span>
       </button>
+      <button class="tab-item" onclick="switchNavTab('tab-analytics')">
+        <span>Báo cáo & Phân tích (BI)</span>
+      </button>
     </nav>
 
     <!-- ─── TAB 1: FORM CHECK-IN (21 CỘT PMS) ──────────────── -->
@@ -222,12 +225,18 @@
             <span>Sổ Cái Đặt Phòng & Thu Ngân</span>
           </div>
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <input type="text" id="search-q" placeholder="Tìm tên khách / SĐT / Mã BK / Phòng..." onkeyup="filterBookingsList()" style="width: 260px;">
-            <select id="filter-st" onchange="filterBookingsList()" style="width: 200px;">
+            <input type="text" id="search-q" placeholder="Tìm tên khách / SĐT / Mã BK / Phòng..." onkeyup="filterBookingsList(true)" style="width: 260px;">
+            <select id="filter-st" onchange="filterBookingsList(true)" style="width: 170px;">
               <option value="all">Tất cả trạng thái</option>
               <option value="CHECKIN">Đang ở (CHECKIN)</option>
               <option value="CHECKOUT">Đã trả (CHECKOUT)</option>
               <option value="CANCELLED">Đã hủy</option>
+            </select>
+            <select id="filter-due" onchange="filterBookingsList(true)" style="width: 170px;">
+              <option value="all">Tất cả thanh toán</option>
+              <option value="unpaid">Còn thiếu (> 0đ)</option>
+              <option value="paid">Đã thanh toán đủ (0đ)</option>
+              <option value="overpaid">Thu thừa (< 0đ)</option>
             </select>
             <button class="btn btn-outline" onclick="resetBookingsFilter()">Làm mới</button>
           </div>
@@ -257,6 +266,10 @@
               <tr><td colspan="14" style="text-align: center; color: var(--text-muted);">Đang tải dữ liệu...</td></tr>
             </tbody>
           </table>
+        </div>
+        <div class="pagination-bar" id="pagination-bookings">
+          <div class="pagination-info" id="pagination-info-bookings">Đang hiển thị 0 / 0 đơn</div>
+          <div class="pagination-controls" id="pagination-controls-bookings"></div>
         </div>
       </div>
     </section>
@@ -311,7 +324,7 @@
             <span>Danh Bạ Khách Hàng Lưu Trú</span>
           </div>
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <input type="text" id="search-customers" placeholder="Tìm tên khách / SĐT / CCCD / Quốc tịch..." onkeyup="filterCustomersList()" style="width: 320px;">
+            <input type="text" id="search-customers" placeholder="Tìm tên khách / SĐT / CCCD / Quốc tịch..." onkeyup="filterCustomersList(true)" style="width: 320px;">
             <button class="btn btn-outline" onclick="resetCustomersFilter()">Làm mới</button>
           </div>
         </div>
@@ -331,6 +344,10 @@
               <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Đang tải dữ liệu...</td></tr>
             </tbody>
           </table>
+        </div>
+        <div class="pagination-bar" id="pagination-customers">
+          <div class="pagination-info" id="pagination-info-customers">Đang hiển thị 0 / 0 khách hàng</div>
+          <div class="pagination-controls" id="pagination-customers-controls"></div>
         </div>
       </div>
     </section>
@@ -367,6 +384,34 @@
               <tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Đang tải dữ liệu...</td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── TAB 6: DASHBOARD POWER BI ─────────────────────── -->
+    <section id="tab-analytics" class="tab-pane">
+      <div class="content-card" style="padding: 1.25rem;">
+        <div class="card-top" style="margin-bottom: 1rem;">
+          <div class="card-heading">
+            <span>Executive BI Dashboard — Power BI Realtime Analytics</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <a href="https://app.powerbi.com/view?r=eyJrIjoiYjZiZWQ2NWMtY2UyMS00OGYzLTgwNWMtMGU0MmRlZTUzYzQyIiwidCI6Ijk4YWRhNjgwLWUzZjQtNDhjYi04ZmJiLWM4YjEwY2I5N2FlZCIsImMiOjEwfQ%3D%3D" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 6px; text-decoration: none;">
+              Mở toàn màn hình ↗
+            </a>
+            <button type="button" class="btn btn-outline btn-sm" onclick="reloadDashboardIframe()" title="Tải lại Dashboard">
+              Tải lại biểu đồ
+            </button>
+          </div>
+        </div>
+        <div class="dashboard-iframe-wrapper" style="position: relative; width: 100%; height: calc(100vh - 230px); min-height: 650px; background: #f8fafc; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
+          <iframe 
+            id="pbi-iframe"
+            title="hotel_app_dash" 
+            src="https://app.powerbi.com/view?r=eyJrIjoiYjZiZWQ2NWMtY2UyMS00OGYzLTgwNWMtMGU0MmRlZTUzYzQyIiwidCI6Ijk4YWRhNjgwLWUzZjQtNDhjYi04ZmJiLWM4YjEwY2I5N2FlZCIsImMiOjEwfQ%3D%3D" 
+            style="width: 100%; height: 100%; border: none;" 
+            allowFullScreen="true">
+          </iframe>
         </div>
       </div>
     </section>

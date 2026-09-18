@@ -1,0 +1,7 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/hotel_app/index.html" },
+    { "source": "/(.*)", "destination": "/hotel_app/$1" }
+  ]
+}
