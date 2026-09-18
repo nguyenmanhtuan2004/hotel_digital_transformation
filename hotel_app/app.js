@@ -677,6 +677,31 @@ function calculateRealtimeFinances() {
   document.getElementById('c-adr').innerText = (nights > 0) ? formatVND(adr) : `${formatVND(adr)} / đợt giờ`;
 }
 
+// ponytail: quick 1-click payment auto-fill on check-in form
+function quickPayCheckin(type) {
+  const roomRev = parseFloat(document.getElementById('f-roomrev')?.value) || 0;
+  const servRev = parseFloat(document.getElementById('f-servrev')?.value) || 0;
+  const debtOld = parseFloat(document.getElementById('f-debtold')?.value) || 0;
+  const total = roomRev + servRev + debtOld;
+
+  const cashEl = document.getElementById('f-cash');
+  const cardEl = document.getElementById('f-card');
+  const transEl = document.getElementById('f-trans');
+  const debtTreeEl = document.getElementById('f-debttree');
+
+  if (cashEl) cashEl.value = 0;
+  if (cardEl) cardEl.value = 0;
+  if (transEl) transEl.value = 0;
+  if (debtTreeEl) debtTreeEl.value = 0;
+
+  if (type === 'trans' && transEl) transEl.value = total;
+  else if (type === 'cash' && cashEl) cashEl.value = total;
+  else if (type === 'card' && cardEl) cardEl.value = total;
+  else if (type === 'debt' && debtTreeEl) debtTreeEl.value = total;
+
+  calculateRealtimeFinances();
+}
+
 // ─── 5. Submit Booking (Gọi Stored Procedure DAB: CheckIn) ──
 async function submitNewBooking(e) {
   e.preventDefault();

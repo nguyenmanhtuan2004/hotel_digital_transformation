@@ -173,6 +173,23 @@
               <input type="number" id="f-debttree" value="0" min="0" oninput="calculateRealtimeFinances()">
             </div>
 
+            <!-- Gợi ý thanh toán nhanh 1 chạm cho Lễ tân -->
+            <div class="col-12" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--v-blue-light); border: 1px solid var(--v-blue-pastel); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;">
+              <span style="font-size: 0.8rem; font-weight: 600; color: var(--v-blue);">⚡ Thanh toán nhanh:</span>
+              <button type="button" class="btn btn-outline btn-sm" onclick="quickPayCheckin('trans')" style="font-size: 0.78rem; padding: 4px 10px; background: #fff;">
+                💳 Thu đủ Chuyển Khoản / QR
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="quickPayCheckin('cash')" style="font-size: 0.78rem; padding: 4px 10px; background: #fff;">
+                💵 Thu đủ Tiền Mặt
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="quickPayCheckin('card')" style="font-size: 0.78rem; padding: 4px 10px; background: #fff;">
+                💳 Thu đủ Thẻ POS
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="quickPayCheckin('debt')" style="font-size: 0.78rem; padding: 4px 10px; background: #fff; color: var(--danger);">
+                📝 Treo nợ (Chưa thu)
+              </button>
+            </div>
+
             <!-- Bảng tổng hợp dòng tiền Realtime Vinamilk Style -->
             <div class="calc-highlight-box">
               <div>
