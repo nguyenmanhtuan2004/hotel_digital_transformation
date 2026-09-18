@@ -1,5 +1,8 @@
-# Ignore docs and analysis directories
+# Ignore docs, analysis, and assets directories
 [Dd]ocs/
 [Aa]nalysis/
+[Aa]ssets/
 *Docs/
 *Analysis/
+*Assets/
+
