@@ -948,6 +948,25 @@ function openCheckoutModal(bid, cust, room, checkInTimeStr) {
     document.getElementById('m-duration').innerText = 'Thời gian lưu trú: Hoàn tất đợt nghỉ';
   }
 
+  // Cập nhật thông tin tài chính trong modal Check-out
+  const b = bookingsData.find(x => x.booking_id === bid);
+  if (b) {
+    const paid = (b.cash_amount || 0) + (b.card_amount || 0) + (b.transfer_amount || 0) + (b.debt_amount || 0);
+    const total = b.gross_revenue || (b.room_revenue + b.service_revenue) || 0;
+    const due = b.balance_due ?? (total - paid);
+
+    const totalEl = document.getElementById('m-total-amount');
+    const paidEl = document.getElementById('m-paid-amount');
+    const dueEl = document.getElementById('m-due-amount');
+
+    if (totalEl) totalEl.innerText = formatVND(total);
+    if (paidEl) paidEl.innerText = formatVND(paid);
+    if (dueEl) {
+      dueEl.innerText = formatVND(due);
+      dueEl.style.color = due <= 0 ? 'var(--success)' : 'var(--danger)';
+    }
+  }
+
   document.getElementById('checkout-modal').classList.add('show');
 }
 
@@ -955,15 +974,19 @@ function closeCheckoutModal() {
   document.getElementById('checkout-modal').classList.remove('show');
 }
 
+// ponytail: preserve check-in payment amounts during checkout
 async function confirmCheckoutAction() {
   try {
+    const currentBooking = bookingsData.find(b => b.booking_id === activeCheckoutId);
+    
+    // Gửi chính xác các số tiền đã thanh toán (chuyển khoản, tiền mặt, thẻ...) từ booking hiện tại
     const payload = {
       BookingID: activeCheckoutId,
-      ServiceRevenue: 0,
-      CashAmount: 0,
-      CardAmount: 0,
-      TransferAmount: 0,
-      DebtAmount: 0
+      ServiceRevenue: currentBooking ? Number(currentBooking.service_revenue || 0) : 0,
+      CashAmount: currentBooking ? Number(currentBooking.cash_amount || 0) : 0,
+      CardAmount: currentBooking ? Number(currentBooking.card_amount || 0) : 0,
+      TransferAmount: currentBooking ? Number(currentBooking.transfer_amount || 0) : 0,
+      DebtAmount: currentBooking ? Number(currentBooking.debt_amount || 0) : 0
     };
 
     const res = await fetch(`${API_BASE}/CheckOut`, {
@@ -977,7 +1000,8 @@ async function confirmCheckoutAction() {
       showToast('Check-out & trả phòng thành công!');
       await initAllData();
     } else {
-      showToast('Lỗi khi check-out');
+      const err = await res.json().catch(() => ({}));
+      showToast('Lỗi khi check-out: ' + (err.error?.message || err.detail || `HTTP ${res.status}`));
     }
   } catch (err) {
     showToast('Lỗi khi check-out: ' + err.message);

@@ -175,18 +175,18 @@
 
             <!-- Gợi ý thanh toán nhanh 1 chạm cho Lễ tân -->
             <div class="col-12" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--v-blue-light); border: 1px solid var(--v-blue-pastel); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;">
-              <span style="font-size: 0.8rem; font-weight: 600; color: var(--v-blue);">⚡ Thanh toán nhanh:</span>
+              <span style="font-size: 0.8rem; font-weight: 600; color: var(--v-blue);">Thanh toán nhanh:</span>
               <button type="button" class="btn btn-outline btn-sm" onclick="quickPayCheckin('trans')" style="font-size: 0.78rem; padding: 4px 10px; background: #fff;">
-                💳 Thu đủ Chuyển Khoản / QR
+                Thu đủ Chuyển Khoản / QR
               </button>
               <button type="button" class="btn btn-outline btn-sm" onclick="quickPayCheckin('cash')" style="font-size: 0.78rem; padding: 4px 10px; background: #fff;">
-                💵 Thu đủ Tiền Mặt
+                Thu đủ Tiền Mặt
               </button>
               <button type="button" class="btn btn-outline btn-sm" onclick="quickPayCheckin('card')" style="font-size: 0.78rem; padding: 4px 10px; background: #fff;">
-                💳 Thu đủ Thẻ POS
+                Thu đủ Thẻ POS
               </button>
               <button type="button" class="btn btn-outline btn-sm" onclick="quickPayCheckin('debt')" style="font-size: 0.78rem; padding: 4px 10px; background: #fff; color: var(--danger);">
-                📝 Treo nợ (Chưa thu)
+                Treo nợ (Chưa thu)
               </button>
             </div>
 
@@ -448,6 +448,20 @@
       <p id="m-duration" style="font-size: 0.85rem; color: var(--text-muted); background: var(--v-blue-light); padding: 6px 12px; border-radius: 6px; margin-bottom: 1rem;">
         Thời gian lưu trú: --
       </p>
+      <div id="m-finance-box" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px; margin-bottom: 1rem; font-size: 0.88rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span style="color: var(--text-muted);">Tổng tiền phòng:</span>
+          <strong id="m-total-amount">0 đ</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span style="color: var(--text-muted);">Đã thanh toán:</span>
+          <strong id="m-paid-amount" style="color: var(--success);">0 đ</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-top: 1px dashed #CBD5E1; padding-top: 6px; margin-top: 6px;">
+          <span style="color: var(--text-muted);">Còn thiếu:</span>
+          <strong id="m-due-amount" style="color: var(--danger);">0 đ</strong>
+        </div>
+      </div>
       <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 1.5rem;">
         <button class="btn btn-outline" onclick="closeCheckoutModal()">Đóng</button>
         <button class="btn btn-vinamilk" onclick="confirmCheckoutAction()">Xác Nhận Trả Phòng</button>
