@@ -769,6 +769,9 @@ async function fetchBookings() {
     });
 
     filterBookingsList();
+    if (customersData && customersData.length > 0) {
+      filterCustomersList();
+    }
   } catch (err) {
     console.error("Bookings error:", err);
   }
@@ -1136,17 +1139,52 @@ async function fetchCustomers() {
   }
 }
 
+// ponytail: in-memory lookup of latest check-in for customer from bookingsData
+function getCustomerLatestCheckIn(customer) {
+  if (!bookingsData || bookingsData.length === 0) return null;
+  const cId = Number(customer.customer_id);
+  const cPhone = (customer.phone_number || '').trim().replace(/[\s\-\.\(\)]/g, '');
+
+  let latestBooking = null;
+  let maxTime = 0;
+
+  for (const b of bookingsData) {
+    let isMatch = false;
+    if (cId && Number(b.customer_id) === cId) {
+      isMatch = true;
+    } else if (cPhone && b.customer_phone) {
+      const bPhone = String(b.customer_phone).trim().replace(/[\s\-\.\(\)]/g, '');
+      if (bPhone && (bPhone === cPhone || (bPhone.length >= 8 && cPhone.endsWith(bPhone)) || (cPhone.length >= 8 && bPhone.endsWith(cPhone)))) {
+        isMatch = true;
+      }
+    }
+
+    if (isMatch) {
+      const t = new Date(b.check_in_time || b.created_at || 0).getTime();
+      if (!isNaN(t) && t > maxTime) {
+        maxTime = t;
+        latestBooking = b;
+      }
+    }
+  }
+
+  return latestBooking;
+}
+
 function filterCustomersList(resetPage = false) {
   if (resetPage) currentCustomersPage = 1;
   const q = (document.getElementById('search-customers')?.value || '').trim().toLowerCase();
 
   const filtered = customersData.filter(c => {
+    const latest = getCustomerLatestCheckIn(c);
+    const checkinStr = latest ? formatDateTime(latest.check_in_time || latest.created_at) : '';
     return !q || (
       (c.full_name || '') + ' ' +
       (c.phone_number || '') + ' ' +
       (c.id_number || '') + ' ' +
       (c.nationality || '') + ' ' +
-      (c.customer_id || '')
+      (c.customer_id || '') + ' ' +
+      checkinStr
     ).toLowerCase().includes(q);
   });
 
@@ -1173,19 +1211,32 @@ function renderCustomersList(list) {
   const tbody = document.getElementById('tbody-customers');
   if (!tbody) return;
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Không tìm thấy khách hàng nào phù hợp</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Không tìm thấy khách hàng nào phù hợp</td></tr>';
     return;
   }
 
-  tbody.innerHTML = list.map(c => `
-    <tr>
-      <td>${c.customer_id}</td>
-      <td><strong style="color:var(--v-blue);">${c.full_name}</strong></td>
-      <td>${c.phone_number || '-'}</td>
-      <td>${c.id_number || '-'}</td>
-      <td>${c.nationality || 'Việt Nam'}</td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = list.map(c => {
+    const latest = getCustomerLatestCheckIn(c);
+    let checkinDisplay = '<span style="color:var(--text-muted); font-size:12px;">-</span>';
+    if (latest && (latest.check_in_time || latest.created_at)) {
+      const timeStr = formatDateTime(latest.check_in_time || latest.created_at);
+      const roomBadge = latest.room_number 
+        ? `<span style="font-size:11px; color:var(--text-muted); margin-left:6px; background:#f1f5f9; padding:2px 6px; border-radius:4px;">P.${latest.room_number}</span>` 
+        : '';
+      checkinDisplay = `<div style="display:inline-flex; align-items:center;"><strong style="color:var(--text-main); font-weight:600;">${timeStr}</strong>${roomBadge}</div>`;
+    }
+
+    return `
+      <tr>
+        <td>${c.customer_id}</td>
+        <td><strong style="color:var(--v-blue);">${c.full_name}</strong></td>
+        <td>${c.phone_number || '-'}</td>
+        <td>${c.id_number || '-'}</td>
+        <td>${c.nationality || 'Việt Nam'}</td>
+        <td>${checkinDisplay}</td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function resetCustomersFilter() {
